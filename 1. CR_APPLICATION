@@ -1,0 +1,842 @@
+/**/
+/*proc contents data= IDALPUB1.M_M_PROJ_INFO_PRD;*/
+/*proc contents data= IDALPUB1.M_M_DISB_INFO_PRD;*/
+/*proc contents data= IDALPUB1.M_M_PROJ_FINANCIAL_VIEW_PRD;*/
+
+/*data cfcstudy.cr_application_1; set cfcstudy.cr_application; run;*/
+/*data cfcstudy.cr_application_prd_1; set cfcstudy.cr_application_prd; run;*/
+proc sql; drop table cfcstudy.cr_application; run;
+proc sql; drop table cfcstudy.cr_application_prd; run;
+
+/*01.get date*/
+/*%let reportdate = 15feb2019;*/
+proc sql; select reportdate into:reportdate from cfcpub01.an_reportdate; run;
+
+proc sql ;
+create table test as
+select * from IDALPUB1.M_M_PROJ_INFO_PRD;
+run;
+/*M_M_DISB_INFO*/
+proc sql;
+create table DISB_INFO as
+select  catx("-",MDI_CUST_ID,MDI_CON_ID,MDI_PROJ_ID) format $20. as REF_TEXT,
+		datepart(MDI_DISB_DT) format date9.	as disbursed_date,
+		MDI_ACT_DISB						as disbursed_amt,
+		MDI_NET_FRM_DISB					as deducted_amt,
+		MDI_BENF_NAME						as customer_name,
+		MDI_NBFC_BANK						as Account_no,
+		MDI_BRANCH_NAME						as Branch_name,
+		MDI_BANK_NAME						as Bank_name
+from IDALPUB1.M_M_DISB_INFO_PRD
+where MDI_PAY_MODE = 'P';
+run;
+
+/*M_M_PROJ_INFO*/
+data PROJ_INFO;
+set IDALPUB1.M_M_PROJ_INFO_PRD;
+REF_TEXT = catx("-",MPI_CUST_ID,MPI_CON_ID,MPI_PROJ_ID);
+/*where MPI_LEGACY_ID = '10000986';*/
+run;
+
+/*M_M_PROJ_FINANCIAL_VIEW_PRD*/
+data PROJ_FINANCIAL_VIEW;
+set IDALPUB1.M_M_PROJ_FINANCIAL_VIEW_PRD;
+keep REF_TEXT 
+MPF_PRIN_BALANCE
+MPF_TOT_OS
+MPF_PRIN_PREPAID
+MPF_OO_TOT_NON_ACC_CHG
+mpf_rpa Prin_n_Int Total_Arrears Total_Arrears_excl_OTH
+MPF_INST_PRIN_BALANCE MPF_INST_INT_BALANCE MPF_OO_LATE_CHG_OS MPF_OTH_OS;
+REF_TEXT = catx("-",MPF_CUST_ID ,MPF_CON_ID,MPF_PROJ_ID);
+Prin_n_Int = (MPF_INST_PRIN_BALANCE + MPF_INST_INT_BALANCE);
+Total_Arrears = (MPF_INST_PRIN_BALANCE + MPF_INST_INT_BALANCE + MPF_OO_LATE_CHG_OS + MPF_OTH_OS);
+Total_Arrears_excl_OTH = (MPF_INST_PRIN_BALANCE + MPF_INST_INT_BALANCE + MPF_OO_LATE_CHG_OS);
+run;
+/*ovd_100k*/
+proc sql;
+create table ovd_100k as
+select distinct caseid, put(caseid+10000000,8.) as agreementno from ETLPub01.LMS_ADVICE
+where CHARGEID = 400;
+run;
+
+proc freq data=IDALPUB1.M_M_PROJ_INFO_PRD;table MPI_PROD_CD;
+
+/*LMS_Loans*/
+proc sql;
+create table LMS_LOAN 	as
+select  distinct 
+		"&reportdate"d format date9. as LMS_run_date,
+		a.REF_TEXT 			format $20.,
+		a.MPI_LEGACY_ID 	length 10 format $10.	as agreementno, 
+		a.mpi_app_ref_no	format $20.				as APPL_REF_NUM,
+		a.MPI_CUST_ID 		format $10.				as CUST_ID,
+		a.MPI_CON_ID		format $4.				as CON_ID,
+		a.MPI_PROJ_ID		format $4.				as PROJ_ID,
+		1 as casecount,
+/*		case when b.disbursed_date is not null then 1 else 0 end as disb_flag,*/
+/*		case when b.Disb_apps is not null then b.Disb_apps else 0 end as total_disb_apps_ever,*/
+/*		case when b.disbursed_date is not null and a.REC_ST = 'A' and c.MPF_PRIN_BALANCE = 0 then 'Matured'*/
+/*			 when b.disbursed_date is not null and a.REC_ST = 'A' and c.MPF_PRIN_BALANCE > 0 then 'Active'*/
+/*			 when b.disbursed_date is not null and a.REC_ST = 'C' and c.MPF_PRIN_BALANCE = 0 then 'Matured'*/
+/*			 when b.disbursed_date is not null and a.REC_ST = 'C' and c.MPF_PRIN_BALANCE > 0 then 'Active'*/
+/*			 else "" end as loanstatus,*/
+
+		a.REC_ST 								as loanstatus,
+/*		d.dpd									as dpd_dump_lea,*/
+/*		case when b.disbursed_date is not null and a.REC_ST = 'A' and c.MPF_PRIN_BALANCE = 0 then 'N/A'*/
+/*			 when b.disbursed_date is not null and a.REC_ST = 'A' and c.MPF_PRIN_BALANCE > 0 then d.bucket*/
+/*			 when b.disbursed_date is not null and a.REC_ST = 'C' and c.MPF_PRIN_BALANCE = 0 then 'N/A'*/
+/*			 when b.disbursed_date is not null and a.REC_ST = 'C' and c.MPF_PRIN_BALANCE > 0 then d.bucket*/
+/*			 else "" end as BUCKET_dump_lea,*/
+
+		a.MPI_DPD			format 4.			as DPD,
+		a.MPI_DQ_STAT_CD	format $10.			as DQ_STAT_CD,
+		a.MPI_PREV_STAT		format $10.			as PREV_STAT,
+		a.MPI_DERV_STAT		format $10.			as DERV_STAT,
+
+/*		d.max_dpd,*/
+/*		d.ever_del,*/
+/*		d.prinbalance							as prinbalance_dump_lea,*/
+		c.MPF_PRIN_BALANCE						as prinbalance,
+		c.MPF_TOT_OS							as total_OS,
+
+/*		case when a.MPI_DISB_TYPE = 'S' then 'Single Disbursement'*/
+/*			 when a.MPI_DISB_TYPE = 'M' then 'Multiple Disbursement'*/
+/*			 else a.MPI_DISB_TYPE end as disb_type,*/
+		a.MPI_PROD_CD 	format $8.				as product,
+		a.MPI_SPRD_CD 	format $8.				as specific_product,
+		a.MPI_ST_DT								as authorized_date,
+/*		a.MPI_DISB_DT							as disbursed_date_PROJ_INFO,*/
+		b.disbursed_date,
+		datepart(a.MPI_MAT_DT) format date9.	as contract_closed_date,
+		datepart(a.MPI_CLS_DT) format date9.	as actual_closed_date,		
+		datepart(a.MPI_REPMT_DT) format date9.	as first_emi_date,
+		day(datepart(a.MPI_REPMT_DT))			as due_day,
+
+/*		a.MPI_ST_DT as moa,*/
+		input(put(datepart(a.MPI_ST_DT),monyy5.),monyy5.) format monyy5. as moa,
+		input(put(b.disbursed_date,monyy5.),monyy5.) format monyy5. as mod,
+
+		case when a.MPI_LEGACY_ID is null then 0
+			 when "&reportdate"d <= datepart(a.MPI_REPMT_DT) then 0
+			 else intck('month',b.disbursed_date,"&reportdate"d) end as mob,
+		intck('month',datepart(a.MPI_ST_DT),"&reportdate"d) as moab,
+
+		a.MPI_LOAN_VALUE 						as loan_amt,
+		b.disbursed_amt,
+/*		b.CR_amt,*/
+		a.MPI_REPMT_TNR 						as tenor,
+		a.MPI_NET_INT_RT 						as interest_rate,
+		a.MPI_EMI 								as EMI,
+/*		case when a.MPI_REPMT_FRQ = 'PFRMON' then 'Monthly'*/
+/*			 when a.MPI_REPMT_FRQ = 'PFRQUA' then 'Quaterly'*/
+/*			 else a.MPI_REPMT_FRQ end 			as REPMT_FRQ,*/
+
+		a.MPI_CR_SHIELD_FLAG	format $10.		as CR_SHIELD_FLAG,
+		a.MPI_CR_SHIELD_PREM_AMT				as CR_SHIELD_AMT,
+/*		a.MPI_CUST_COMPANY_NAME					as COMPANY_NAME,*/
+/*		d.ARR_POS								as ARREARPRIN,*/
+/*		d.ARR_INT								as ARREARINT,*/
+		a.MPI_PAY_MODE			format $10.		as Repayment_Mode,
+		a.MPI_AUTO_DEBIT_LT						as Auto_Debit_Limit,
+		b.customer_name,
+		b.Account_no,
+		b.Branch_name,
+		b.Bank_name,
+		c.Prin_n_Int,
+		c.Total_Arrears,
+		c.Total_Arrears_excl_OTH,
+		c.mpf_rpa 								as RPA,
+		c.MPF_INST_PRIN_BALANCE, 
+		c.MPF_INST_INT_BALANCE,
+		c.MPF_OO_LATE_CHG_OS,
+		c.MPF_OTH_OS,
+		c.MPF_OO_TOT_NON_ACC_CHG 				as ET_amount,
+		c.MPF_PRIN_PREPAID,
+
+datepart(d.APPDATE) format date9. 				as LMS_APPDATE,
+datepart(d.DISBURSALDATE) format date9. 		as LMS_DISBURSALDATE,
+datepart(d.INTSTART_DATE_REGULAR) format date9. as LMS_INTSTART_DATE,
+d.CLOSUREDATE									as LMS_CLOSUREDATE,
+/*case when e.DIFF_DAYS_METHOD is null then '360' else e.DIFF_DAYS_METHOD end as DIFF_DAYS_METHOD,*/
+case when f.agreementno is null then 'N' else 'Y' end as ovd_100k_flag
+
+from 		PROJ_INFO						a
+left join 	DISB_INFO						b 	on a.REF_TEXT 		= b.REF_TEXT
+left join 	PROJ_FINANCIAL_VIEW				c	on a.REF_TEXT 		= c.REF_TEXT
+left join 	ETLPub01.LMS_LOAN 				d 	on a.MPI_LEGACY_ID 	= d.agreementno
+/*left join 	CFCPub.LOAN_DIFF_DAYS_METHOD 	e 	on a.MPI_LEGACY_ID 	= e.agreementno*/
+left join	ovd_100k						f 	on a.MPI_LEGACY_ID 	= f.agreementno
+
+/*left join IDALPUB1.M_M_PROJ_FINANCIAL_VIEW	c	on 	a.MPI_CUST_ID 	= c.MPF_CUST_ID*/
+/*												and a.MPI_CON_ID 	= c.MPF_CON_ID*/
+/*												and a.MPI_PROJ_ID 	= c.MPF_PROJ_ID*/
+/*left join CR_DUMP_LEA_DAILY1				d	on 	a.REF_TEXT 		= d.REF_TEXT*/
+/*where MPI_SPRD_CD = 'SALMOR'*/
+/*where MPI_LEGACY_ID in ('100002323')*/
+/*where a.MPI_CUST_ID in ('0000700074')*/
+order by a.MPI_CUST_ID, a.MPI_CON_ID, a.MPI_PROJ_ID;
+run;
+
+data LMS_LOAN;
+set LMS_LOAN;
+format moa monyy5. mod monyy5.;
+moa	= input(put(datepart(authorized_date),monyy5.),monyy5.);
+mod = input(put(disbursed_date,monyy5.),monyy5.);
+if product not in 		('CORHQ2', 'CORMO2', 'INSMO2', 'SALHQ2', 'SALMO2',
+						'CORHQ1', 'CORMO1', 'INSMO1', 'SALHQ1', 'SALMO1',
+						'CORHQ4', 'CORMO4', 'INSMO4', 'SALHQ4', 'SALMO4'
+						'CORHQT', 'CORMOR', 'INSMOR', 'SALHQT', 'SALMOR'
+						'AUT001')		then product_group = 'PL';
+else if product in ('AUT001')			then product_group = 'AL';
+else product_group = 'MG';
+
+if product in ('SALPL1', 'CRDPL1', 'INSPL1', 'CORPL1', 'PTOPU1', 'FTKSFN', 'NPRSFN', 'SFXSEL') then product_set = 'PL - set 1';
+if product in ('SALPL2', 'CRDPL2', 'INSPL2', 'CORPL2', 'PTOPU2') then product_set = 'PL - set 2';
+if product in ('SALPL6', 'CRDPL6', 'INSPL6', 'CORPL6', 'PTOPU6') then product_set = 'PL - set 6';
+if product in ('SALPL5', 'CRDPL5', 'INSPL5', 'CORPL5', 'PTOPU5') then product_set = 'PL - set 5';
+if product in ('SALPL3', 'CRDPL3', 'INSPL3', 'CORPL3', 'PTOPU3') then product_set = 'PL - set 3';
+if product in ('SALPL4', 'CRDPL4', 'INSPL4', 'CORPL4', 'PTOPU4') then product_set = 'PL - set 4';
+if product in ('SALPIL', 'CRDPIL', 'INSPIL', 'CORPIL', 'PTOPUP') then product_set = 'PL - set A';
+
+if product in ('CORHQ2', 'CORMO2', 'INSMO2', 'SALHQ2', 'SALMO2') then product_set = 'MG - set 2';
+if product in ('CORHQ1', 'CORMO1', 'INSMO1', 'SALHQ1', 'SALMO1') then product_set = 'MG - set 1';
+if product in ('CORHQ4', 'CORMO4', 'INSMO4', 'SALHQ4', 'SALMO4') then product_set = 'MG - set 4';
+if product in ('CORHQT', 'CORMOR', 'INSMOR', 'SALHQT', 'SALMOR') then product_set = 'MG - set A';
+
+if product in ('AUT001') then product_set = 'AUTO_LOAN';
+/*else product_group = 'MG';*/
+
+/*if REF_TEXT = '0001027334-004-0002';*/
+run;
+
+/*proc datasets lib = work kill;run;*/
+data cfcstudy.LMS_LOAN_PRD;
+set LMS_LOAN;
+format 
+/*check_authorized_date $20.*/
+check_APPDATE $20.
+check_DISBURSALDATE $20.
+/*check_loan_amt $20.*/
+/*check_EFFRATE $20.*/
+/*check_tenure $20.*/
+/*check_disbursed_date $20.*/
+/*check_1st_EMI_date $20.*/
+/*check_dpd $20. */
+/*check_maturity_date $20. */
+/*check_EMI $20. */
+/*check_CR_SHIELD $20. */
+/*check_CR_SHIELD_AMT $20. */
+check_DIFF_DAYS $20.
+check_ET $20.
+check_ovd $20.
+check_mapping $20. ;
+
+
+/*I. CHECK PRODUCT*/
+/*by CAS_authorized_date*/
+/*if product_group = 'PL' then do;*/
+/*	if 		CAS_authorized_date < '01apr2015'd then check_authorized_date = 'PL - set 1';*/
+/*	else if '01apr2015'd <= CAS_authorized_date < '01dec2015'd then check_authorized_date = 'PL - set 2';*/
+/*	else if '01dec2015'd <= CAS_authorized_date < '01aug2016'd then check_authorized_date = 'PL - set 6';*/
+/*	else if '01aug2016'd <= CAS_authorized_date < '01oct2016'd then check_authorized_date = 'PL - set 5';*/
+/*	else if '01oct2016'd <= CAS_authorized_date < '15mar2017'd then check_authorized_date = 'PL - set 3';*/
+/*	else if CAS_authorized_date >= '15mar2017'd then check_authorized_date = 'PL - set 4';*/
+/*	end;*/
+/*else if product_group = 'MG' then do;*/
+/*	if 		CAS_authorized_date < '01dec2014'd then check_authorized_date = 'MG - set 2';*/
+/*	else if '01dec2014'd <= CAS_authorized_date < '15mar2017'd then check_authorized_date = 'MG - set 1';*/
+/*	else if CAS_authorized_date >= '15mar2017'd then check_authorized_date = 'MG - set 4';*/
+/*	end;*/
+/*by LMS_APPDATE*/
+if product_group = 'PL' then do;
+	if 		LMS_APPDATE < '01apr2015'd then check_APPDATE = 'PL - set 1';
+	else if '01apr2015'd <= LMS_APPDATE < '01dec2015'd then check_APPDATE = 'PL - set 2';
+	else if '01dec2015'd <= LMS_APPDATE < '01aug2016'd then check_APPDATE = 'PL - set 6';
+	else if '01aug2016'd <= LMS_APPDATE < '01oct2016'd then check_APPDATE = 'PL - set 5';
+	else if '01oct2016'd <= LMS_APPDATE < '15mar2017'd then check_APPDATE = 'PL - set 3';
+	else if LMS_APPDATE >= '15mar2017'd then check_APPDATE = 'PL - set 4';
+	end;
+else if product_group = 'MG' then do;
+	if 		LMS_APPDATE < '01dec2014'd then check_APPDATE = 'MG - set 2';
+	else if '01dec2014'd <= LMS_APPDATE < '15mar2017'd then check_APPDATE = 'MG - set 1';
+	else if LMS_APPDATE >= '15mar2017'd then check_APPDATE = 'MG - set 4';
+	end;
+/*by LMS_DISBURSALDATE*/
+if product_group = 'PL' then do;
+	if 		LMS_DISBURSALDATE < '01apr2015'd then check_DISBURSALDATE = 'PL - set 1';
+	else if '01apr2015'd <= LMS_DISBURSALDATE < '01dec2015'd then check_DISBURSALDATE = 'PL - set 2';
+	else if '01dec2015'd <= LMS_DISBURSALDATE < '01aug2016'd then check_DISBURSALDATE = 'PL - set 6';
+	else if '01aug2016'd <= LMS_DISBURSALDATE < '01oct2016'd then check_DISBURSALDATE = 'PL - set 5';
+	else if '01oct2016'd <= LMS_DISBURSALDATE < '15mar2017'd then check_DISBURSALDATE = 'PL - set 3';
+	else if LMS_DISBURSALDATE >= '15mar2017'd then check_DISBURSALDATE = 'PL - set 4';
+	end;
+else if product_group = 'MG' then do;
+	if 		LMS_DISBURSALDATE < '01dec2014'd then check_DISBURSALDATE = 'MG - set 2';
+	else if '01dec2014'd <= LMS_DISBURSALDATE < '15mar2017'd then check_DISBURSALDATE = 'MG - set 1';
+	else if LMS_DISBURSALDATE >= '15mar2017'd then check_DISBURSALDATE = 'MG - set 4';
+	end;
+
+/*DIFF_DAYS_METHOD*/
+if product_group = 'PL' then do;
+	if 		DIFF_DAYS_METHOD = '360' then check_DIFF_DAYS = 'PL - 360';
+	else if DIFF_DAYS_METHOD = 'ACT' then check_DIFF_DAYS = 'PL - ACT';
+	end;
+else if product_group = 'MG' then do;
+	if 		DIFF_DAYS_METHOD = '360' then check_DIFF_DAYS = 'MG - 360';
+	else if DIFF_DAYS_METHOD = 'ACT' then check_DIFF_DAYS = 'MG - ACT';
+	end;
+
+/*Early Terminate*/
+if product_group = 'PL' then do;
+	if 		LMS_INTSTART_DATE >= '01Aug2016'd then check_ET = 'PL - 6432';
+	else if LMS_INTSTART_DATE < '01Aug2016'd then check_ET = 'PL - 432';
+	end;
+else if product_group = 'MG' then do; check_ET = 'MG - 3';
+	end;
+
+/*overdue fee 100k*/
+if product_group = 'PL' then do;
+	if 		LMS_DISBURSALDATE < '01Apr2015'd then check_ovd = 'PL - No 100k';
+	else if '01apr2015'd <= LMS_DISBURSALDATE < '15mar2017'd then check_ovd = 'PL - 100k';
+	else if LMS_DISBURSALDATE >= '15mar2017'd then check_ovd = 'PL - No 100k';
+	end;
+else if product_group = 'MG' then do; check_ovd = 'MG - No 100k';
+	end;
+
+/*Product_mapping final*/
+if product_group = 'PL' then do;
+	if 		check_APPDATE = 'PL - set 1' and check_ovd = 'PL - 100k' then check_mapping = 'not ok';
+	else if check_APPDATE = 'PL - set 6' and check_ET = 'PL - 6432' then check_mapping = 'not ok';
+	else if check_APPDATE = 'PL - set 3' and product in ('CRDPL5', 'INSPL5', 'PTOPU5', 'SALPL5') then check_mapping = 'not ok';
+	else if check_APPDATE = 'PL - set 3' and check_ovd = 'PL - No 100k' then check_mapping = 'not ok';
+	else 	check_mapping = 'ok';
+	end;
+else check_mapping = 'ok';
+
+
+/*II. CHECK LOAN BASIC INFO*/
+/*if loan_amt 			= PVFC_loan_amt 			then check_loan_amt = 'ok'; 			else check_loan_amt = 'not ok';*/
+/*if interest_rate 		= PVFC_EFFRATE 				then check_EFFRATE = 'ok'; 				else check_EFFRATE = 'not ok';*/
+/*if tenor 				= PVFC_tenure 				then check_tenure = 'ok'; 				else check_tenure = 'not ok';*/
+/*if disbursed_date		= LMS_DISBURSALDATE			then check_disbursed_date = 'ok'; 		else check_disbursed_date = 'not ok';*/
+/*if first_EMI_date		= PVFC_1st_emi_date			then check_1st_EMI_date = 'ok'; 		else check_1st_EMI_date = 'not ok';*/
+/*if dpd					= PVFC_dpd_13Nov + 3		then check_dpd = 'ok'; 					else check_dpd = 'not ok';*/
+/*if contract_close_date	= PVFC_maturity_date		then check_maturity_date = 'ok'; 		else check_maturity_date = 'not ok';*/
+/*if EMI					= PVFC_emi					then check_EMI = 'ok'; 					else check_EMI = 'not ok';*/
+/*if CR_SHIELD_FLAG		= PVFC_CS_flag				then check_CR_SHIELD = 'ok'; 			else check_CR_SHIELD = 'not ok';*/
+/*if CR_SHIELD_AMT		= PVFC_CS_amt				then check_CR_SHIELD_AMT = 'ok'; 		else check_CR_SHIELD_AMT = 'not ok';*/
+drop 
+/*CUST_ID	CON_ID	PROJ_ID	*/
+specific_product
+/*CR_SHIELD_FLAG	CR_SHIELD_AMT		*/
+/*Repayment_Mode*/
+/*Auto_Debit_Limit*/
+customer_name
+Account_no
+Branch_name	Bank_name
+LMS_APPDATE	
+LMS_DISBURSALDATE	
+LMS_INTSTART_DATE	
+LMS_CLOSUREDATE	
+DIFF_DAYS_METHOD
+/*product_group	*/
+check_APPDATE	
+check_DISBURSALDATE	
+check_DIFF_DAYS	
+check_ET	
+check_ovd	
+check_mapping
+DERV_STAT
+
+/*CR_SHIELD_FLAG	*/
+/*CR_SHIELD_AMT */
+;
+run;
+
+/*proc freq data=check_product; table check_mapping;*/
+
+proc datasets lib = work kill;run;
+/*proc freq data=cfcstudy.LMS_LOAN_PRD; table repayment_Mode;*/
+proc contents data=cfcstudy.LMS_LOAN_PRD;run;
+
+
+--1
+/*proc contents data=IDALPUB1.O_TRN_OCR_LOAN_DTLS;*/
+/*01.get LMS date*/
+/*proc sql;*/
+/*create table date as*/
+/*select max(datepart(MPD_CALC_DT)) as LMS_run_date format date9. from IDALPUB1.M_M_PROJ_DQ;*/
+/*run;*/
+/*proc sql;select LMS_run_date+1 format date9. into :reportdate from date;quit;*/
+
+proc contents data=IDALPUB1.O_TRN_OCR_LOAN_DTLS_PRD;
+
+proc freq data=IDALPUB1.O_TRN_OCR_LOAN_DTLS_PRD; table product_type;
+
+
+/*Define product_name*/
+data apps;
+set IDALPUB1.O_TRN_OCR_LOAN_DTLS_PRD;
+format product_name $20. 
+product_desc $35.
+applied_date date9.  
+authorized_date date9. 
+disbursed_date date9. 
+actual_closed_date date9. 
+contract_closed_date date9. 
+first_emi_date date9.
+moa monyy5.
+mod monyy5.;
+
+retain APPL_REF_NUM PRODUCT_GROUP product_name product_desc LOAN_PURPOSE_CATEGORY
+applied_date authorized_date disbursed_date actual_closed_date contract_closed_date first_emi_date
+moa mod due_day 
+USER_RECOMMENDED_LOAN_AMOUNT sys_recommend_limit REQ_LOAN_AMT APPROVED_AMT CREDIT_SHIELD_AMT
+MONTHLY_INSTALLMENT REPAY_START_DATE;
+
+keep APPL_REF_NUM PRODUCT_GROUP product_name product_desc LOAN_PURPOSE_CATEGORY
+applied_date authorized_date disbursed_date actual_closed_date contract_closed_date first_emi_date
+moa mod due_day 
+USER_RECOMMENDED_LOAN_AMOUNT sys_recommend_limit REQ_LOAN_AMT APPROVED_AMT CREDIT_SHIELD_AMT
+MONTHLY_INSTALLMENT REPAY_START_DATE;
+
+if PRODUCT_GROUP in ('CORHQT','CORMOR','INSHQT','INSMOR','SALHQT','SALMOR','SELHQT') then product_name = 'Mortgage';
+else if PRODUCT_GROUP = 'SFXSEL' then product_name = 'X-sell';
+else if PRODUCT_GROUP = 'PTOPUP' then product_name = 'Top-up';
+else if PRODUCT_GROUP = 'SELPIL' then product_name = 'PL Self-emp';
+else if PRODUCT_GROUP = 'SALPIL' then product_name = 'PL Salaried';
+else if PRODUCT_GROUP = 'INSPIL' then product_name = 'PL Insurance';
+else if PRODUCT_GROUP = 'CORPIL' then product_name = 'PL CELP';
+else if PRODUCT_GROUP = 'CRDPIL' then product_name = 'PL Card';
+else if PRODUCT_GROUP in ('FTKSFN','NPRSFN') then product_name = 'Sales finance';
+else if PRODUCT_GROUP = 'AUTFIX' then product_name='Auto Loan';
+else product_name = 'Other';
+
+if 		PRODUCT_GROUP = 'CORHQT' then product_desc = 'CORPORATE EMPLOYEE HOME EQUITY';
+else if PRODUCT_GROUP = 'CORMOR' then product_desc = 'CORPORATE EMPLOYEE HOME LOANS';
+else if PRODUCT_GROUP = 'CORPIL' then product_desc = 'CORP EMPLOYEE LOAN PERSONAL PROGRAM';
+else if PRODUCT_GROUP = 'CRDPIL' then product_desc = 'CREDIT CARD CUST. SURROGATE PROGRAM';
+else if PRODUCT_GROUP = 'FTKSFN' then product_desc = 'SALES FINANCE FAST TRACK';
+else if PRODUCT_GROUP = 'INSHQT' then product_desc = 'INS CUST SURROGATE HOME EQUITY';
+else if PRODUCT_GROUP = 'INSMOR' then product_desc = 'INSURANCE CUST SURROGATE HOME LOANS';
+else if PRODUCT_GROUP = 'INSPIL' then product_desc = 'INSURANCE CUST. SURROGATE PROGRAM';
+else if PRODUCT_GROUP = 'NPRSFN' then product_desc = 'SALES FINANCE NORMAL PROCESS';
+else if PRODUCT_GROUP = 'PTOPUP' then product_desc = 'TOPUP FOR PERSONAL LOAN';
+else if PRODUCT_GROUP = 'SALHQT' then product_desc = 'SALARIED HOME EQUITY';
+else if PRODUCT_GROUP = 'SALMOR' then product_desc = 'SALARIED HOME LOANS';
+else if PRODUCT_GROUP = 'SALPIL' then product_desc = 'RETAIL PERSONAL LOAN FOR SALARIED';
+else if PRODUCT_GROUP = 'SELHQT' then product_desc = 'SELF EMPLOYED HOME EQUITY';
+else if PRODUCT_GROUP = 'SELPIL' then product_desc = 'RETAIL PERSONAL LOAN FOR SELF EMP.';
+else if PRODUCT_GROUP = 'SFXSEL' then product_desc = 'PL XSEL FOR SF';
+else if PRODUCT_GROUP = 'AUTFIX' then product_desc='AUTO LOAN';
+else product_desc = 'Other';
+
+
+
+applied_date 			= input(put(datepart(INPUTTER_DT),date9.),date9.);
+authorized_date 		= input(put(datepart(BOOKING_DATE),date9.),date9.);
+disbursed_date 			= input(put(datepart(DISBURSAL_DATE),date9.),date9.);
+actual_closed_date 		= input(put(datepart(SETTLEMENT_DATE),date9.),date9.);
+contract_closed_date 	= input(put(datepart(FINAL_INSTALLMENT_DUE_DATE),date9.),date9.);
+first_emi_date 			= input(put(datepart(REPAY_START_DATE),date9.),date9.);
+moa						= input(put(datepart(BOOKING_DATE),monyy5.),monyy5.);
+/*mod						= input(put(datepart(BOOKING_DATE),monyy5.),monyy5.);*/
+mod						= input(put(datepart(DISBURSAL_DATE),monyy5.),monyy5.);
+due_day 				= day(datepart(REPAY_START_DATE));
+if product_type  not in ( 'DM')
+;run;
+
+proc sort data=apps; by appl_ref_num applied_date; run;
+data apps; set apps; if last.appl_ref_num;by appl_ref_num applied_date; run;
+
+/*check duplicate*/
+/*proc sql;*/
+/*create table m1 as */
+/*select APPL_REF_NUM, count(*) as cnt*/
+/*from apps*/
+/*group by 1*/
+/*having cnt > 1;*/
+/*run;*/
+/**/
+/*data m2;*/
+/*set apps;*/
+/*if APPL_REF_NUM = '1708240003424163';*/
+/*run;*/
+/**/
+/*data m2;*/
+/*set IDALPUB1.O_TRN_OCR_LOAN_DTLS;*/
+/*if APPL_REF_NUM = '1708240003424163';*/
+/*run;*/
+
+--2
+/*Define insurer*/
+proc sql;
+create table insurer as
+select APPL_REF_NUM, POLICY_HOLDER_NAME
+from IDALPUB1.O_TRN_OCR_INCOME_EXPEN_DTLS_PRD
+where INCOME_SAVE_FLAG = 'INCOME_IPSP'
+and APPL_REF_NUM in (select distinct APPL_REF_NUM from apps)
+order by APPL_REF_NUM, POLICY_HOLDER_NAME;
+run;
+/*data 	insurer;*/
+/*set 	IDALPUB1.O_TRN_OCR_INCOME_EXPEN_DTLS;*/
+/*keep 	APPL_REF_NUM POLICY_HOLDER_NAME;*/
+/*if 		INCOME_SAVE_FLAG = 'INCOME_IPSP';*/
+/*run;*/
+/*proc sort data=insurer; by APPL_REF_NUM POLICY_HOLDER_NAME; run;*/
+data insurer; set insurer; if last.APPL_REF_NUM;by APPL_REF_NUM POLICY_HOLDER_NAME; run;
+
+
+/*Product_name & INSURER & Pru_Non Pru*/
+proc sql;
+create table pru_nonpru	as
+select  a.APPL_REF_NUM,
+		a.PRODUCT_GROUP,
+		a.product_name,
+		b.POLICY_HOLDER_NAME,
+	    case when a.PRODUCT_GROUP = 'INSPIL' and b.POLICY_HOLDER_NAME = 'Prudential Life' 			then 'Pru'
+	   		 when a.PRODUCT_GROUP = 'INSPIL' and b.POLICY_HOLDER_NAME not in ('Prudential Life') 	then 'Non-pru'
+			 else '' end as pru_non_pru
+from 		apps 		a
+left join	insurer		b on a.APPL_REF_NUM = b.APPL_REF_NUM
+;
+run;
+/*check duplicate*/
+/*proc sql;*/
+/*create table m1 as */
+/*select APPL_REF_NUM, POLICY_HOLDER_NAME, count(*) as cnt*/
+/*from insurer*/
+/*group by 1,2*/
+/*having cnt > 1;*/
+/*run;*/
+/**/
+/*data m2;*/
+/*set apps;*/
+/*if APPL_REF_NUM = '1708240003424163';*/
+/*run;*/
+/**/
+/*data m2;*/
+/*set IDALPUB1.O_TRN_OCR_LOAN_DTLS;*/
+/*if APPL_REF_NUM = '1708240003424163';*/
+/*run;*/
+--3
+
+/*proc contents data=IDALPUB1.O_OCR_GENERAL_PARAM_MB_PRD;*/
+/*proc contents data=IDALPUB1.O_TRN_OCR_DE_SALES_POLICY_PRD;*/
+/*proc contents data=IDALPUB1.O_TRN_OCR_REGISTRATION_DTL_PRD ;*/
+
+/*Define Campaign_code*/
+/*proc sql;*/
+/*create table Campaign_code as*/
+/*select distinct value1, value2*/
+/*from  IDALPUB1.O_OCR_GENERAL_PARAM_MB_PRD*/
+/*where KEY1 like '%CAMPAIGN_PRODUCTCODE%'*/
+/*order by 1,2;*/
+/*run;*/
+
+/*proc sql; */
+/*create table Campaign_code1 as*/
+/*select  APPL_REF_NUM,*/
+/*		CAMPAIGN_PROD_CODE1,*/
+/*		case when value2 is not null then value2 else 'Unknown' end as campaign_code*/
+/**/
+/*from  		IDALPUB1.O_TRN_OCR_DE_SALES_POLICY_PRD 	a*/
+/*left join 	Campaign_code							b on a.CAMPAIGN_PROD_CODE1 = b.value1*/
+/*where APPL_REF_NUM in (select distinct APPL_REF_NUM from apps)*/
+/*;*/
+/*run;*/
+/**/
+/*proc sql; */
+/*create table Campaign_code2 as*/
+/*select  a.APPL_REF_NUM,*/
+/*		a.INPUTTER_DT,*/
+/*		case when b.value2 is not null then b.value2 else 'Unknown' end as campaign_code,*/
+/*		case when c.value2 is not null then c.value2 else 'Unknown' end as campaign_code2,*/
+/*		case when d.value2 is not null then d.value2 else 'Unknown' end as campaign_code3*/
+/**/
+/*from  		IDALPUB1.O_TRN_OCR_REGISTRATION_DTL_PRD 	a*/
+/*left join 	Campaign_code	b on a.COMPAIGN_CODE = b.value1*/
+/*left join 	Campaign_code	c on a.COMPAIGN_CODE2 = c.value1*/
+/*left join 	Campaign_code	d on a.COMPAIGN_CODE3 = d.value1*/
+/*where a.KEY1 = 'REGISTRATION' and APPL_REF_NUM in (select distinct APPL_REF_NUM from apps);*/
+/*run;*/
+/**/
+/*proc sort data =  Campaign_code2; by appl_ref_num inputter_dt; run;*/
+/*data Campaign_code2; set Campaign_code2; if last.appl_ref_num; by appl_ref_num inputter_dt; run;*/
+-- 4
+
+/* MUU Process */
+/*proc sql;*/
+/*create table MUU as*/
+/*select * from IDALPUB1.O_TRN_OCR_NOTEPAD_DTLS_PRD*/
+/*where NOTE_CODE like '%MU%';*/
+/*run;*/
+/**/
+/*proc sort data = MUU; by APPL_REF_NUM INPUTTED_DATE; run;*/
+/*data 	MUU1;*/
+/*set 	MUU;*/
+/*format 	NOTE_CODE $30.;*/
+/*by 		APPL_REF_NUM INPUTTED_DATE;*/
+/*if 		first.APPL_REF_NUM;*/
+/*run;*/
+/**/
+/*data 		MUU1;*/
+/*set 		MUU1;*/
+/*MUUP_DATE = put(datepart(INPUTTED_DATE),date9.);*/
+/*run;*/
+--5
+
+/*Define Campaign_code*/
+data 	loan_purpose;
+set 	IDALPUB1.O_OCR_GENERAL_PARAM_MB_PRD;
+keep 	key1 value1 value2;
+if 		KEY1 = 'LOAN_PURPOSE';
+run;
+
+proc sql; 
+create table loan_purpose1 as
+select  APPL_REF_NUM,
+		LOAN_PURPOSE_CATEGORY,
+		case when value2 is not null then value2 else 'Unknown' end as loan_purpose
+
+from  		apps 			a
+left join 	loan_purpose 	b on a.LOAN_PURPOSE_CATEGORY = b.value1
+;
+run;
+--6
+proc sql;
+create table apprefnum as
+select     b.appl_ref_num format $20. as app_id,
+           a.userid format $15., 
+           case when e.DEPARTMENT is null then 'SALES' else e.DEPARTMENT end as DEPARTMENT format $10.,
+           a.INITIALQUEUEID,a.NEWQUEUEID,
+           case when c.queuelabel ="" then 'Sales Queue' else c.queuelabel end as INITIAL format $30.,
+           d.queuelabel as NEW format $30.,
+           a.INITIALDATE, a.USERDATE
+from IDALPUB1.O_OW_AUDIT_TABLE_PRD a
+left join IDALPUB1.O_OCR_CREDIT_WORKFLOW_MAP_PRD b on a.workitemid = b.work_item_id
+left join IDALPUB1.o_ow_queue_prd c on a.initialqueueid = c.queueid
+left join IDALPUB1.o_ow_queue_prd d on a.NEWQUEUEID = d.queueid
+left join IDALPUB1.O_OCR_OPERATOR_ID_MB_PRD     e on a.USERID        = e.OPERATOR_ID
+where appl_ref_num is not null
+and USERACTION = 'ROUTE' 
+order by appl_ref_num, INITIALDATE, USERDATE;
+delete from apprefnum where INITIAL = 'Fraud Queue' and NEW = "";
+;run;
+proc sort data=apprefnum nodupkey; by app_id INITIALDATE USERDATE;
+
+data CFCSTUDY.CR_APP_PRODUCTIVITY;
+set apprefnum;
+by app_id INITIALDATE USERDATE;
+seq+1;
+if first.app_id then seq = 1;
+run;
+--61
+
+proc sort data=CFCSTUDY.CR_APP_PRODUCTIVITY out= productivity; by app_id seq; run;
+
+data 	productivity1;
+set 	productivity;
+if 		last.app_id;
+by 		app_id seq;
+run;
+
+proc freq data=productivity1; table new;
+
+proc sql;
+create table productivity2 as
+select *,
+		case when NEW in ('Approved Queue') then 'Finish'
+			 when NEW in ('Reject Queue') then 'Reject'
+			 else 'Pending' end as last_stage,
+		NEW as current_stage
+
+from productivity1;
+run;
+
+
+
+/*check duplicate*/
+/*proc sql;*/
+/*create table m1 as */
+/*select app_id, count(*) as cnt*/
+/*from productivity2*/
+/*group by 1*/
+/*having cnt > 1;*/
+/*run;*/
+/**/
+/*data m2;*/
+/*set apps;*/
+/*if app_id = '1708240003424163';*/
+/*run;*/
+/**/
+/*data m2;*/
+/*set IDALPUB1.O_TRN_OCR_LOAN_DTLS;*/
+/*if app_id = '1708240003424163';*/
+/*run;*/
+
+
+
+--7
+/*data cfcstudy.CR_RO_USER;*/
+/*set WORK.'BN users'n;*/
+/*run;*/
+
+/*Define Campaign_code*/
+/*data 	RO_Branch_para;*/
+/*set 	IDALPUB1.O_OCR_GENERAL_PARAM_MB;*/
+/*keep 	key1 value1 value2;*/
+/*if 		KEY1 = 'TRANSACTIONAL';*/
+/*run;*/
+
+/*ger RO_Branch*/
+/*data RO_Branch;*/
+/*set IDALPUB1.O_TRN_OCR_DE_SALES_POLICY;*/
+/*keep app_id BRACH_OFFICE_NAME;*/
+/*run;*/
+
+/*proc sql;*/
+/*create table RO_Branch1 as*/
+/*select a.*, b.value2 as RO_Branch*/
+/*from RO_Branch a*/
+/*left join RO_Branch_para b on a.BRACH_OFFICE_NAME = b.value1;*/
+/*run;*/
+
+data import_branch;
+set cfcpub.RCL_IMPORT_BRANCH;
+run;
+
+data import_ro;
+set cfcpub.RCL_IMPORT_RO;
+run;
+
+proc contents data=IDALPUB1.O_OCR_OPERATOR_ID_MB_PRD;
+/*proc contents data=cfcstudy.CR_RO_USER;*/
+
+proc sort data=import_BRANCH; by LOS_User seq; run;
+data RCL_IMPORT_BRANCH; 
+set import_BRANCH;
+if last.LOS_User;
+by LOS_User seq; 
+run;
+
+proc sort data=import_RO; by LOS_User seq; run;
+data RCL_IMPORT_RO; 
+set import_RO;
+if last.LOS_User;
+by LOS_User seq; 
+run;
+
+proc sort data=CFCSTUDY.CR_APP_PRODUCTIVITY out= productivity3; by app_id seq; run;
+
+data 		Sale RO BM;
+set 		productivity3;
+by 			app_id seq;
+if 			seq = 1 					then flag=1;
+else if		INITIAL ='RO Queue' 		then flag=2;
+else if		INITIAL = 'BM Queue' 		then flag=3;
+else		flag=4;
+if flag	=	1 then output Sale;
+if flag	=	2 then output RO;
+if flag	=	3 then output BM;
+run;
+
+data Sale1; set Sale; by app_id seq; if last.app_id; run;
+data RO1; set RO; by app_id seq; if last.app_id; run;
+data BM1; set BM; by app_id seq; if last.app_id; run;
+
+proc sql;
+create table app_users as
+select  a.APPL_REF_NUM,
+		b.USERID 		as inspector_id,
+		e.OPERATOR_NAME as inspector_name,
+		c.USERID 		as RO_id,
+/*		case when f.OPERATOR_NAME 	is null then 'n/a' else f.OPERATOR_NAME end as RO_name,*/
+		h.User_name 	as RO_name,
+		d.USERID 		as BM_id,
+/*		case when g.OPERATOR_NAME 	is null then 'n/a' else g.OPERATOR_NAME end as BM_name,*/
+		i.User_name 	as BM_name,
+		h.Branch 		as RO_branch
+/*		case when h.Branch	 		is null then 'n/a' else h.Branch		end as RO_branch*/
+from apps a
+left join Sale1 							b on a.APPL_REF_NUM = b.app_id
+left join RO1 								c on a.APPL_REF_NUM = c.app_id
+left join BM1 								d on a.APPL_REF_NUM = d.app_id
+left join IDALPUB1.O_OCR_OPERATOR_ID_MB_PRD	e on b.USERID		= e.OPERATOR_ID
+left join IDALPUB1.O_OCR_OPERATOR_ID_MB_PRD	f on c.USERID		= f.OPERATOR_ID
+left join IDALPUB1.O_OCR_OPERATOR_ID_MB_PRD	g on d.USERID		= g.OPERATOR_ID
+/*left join RO_Branch1					h on a.appl_ref_num	= h.appl_ref_num*/
+left join RCL_IMPORT_RO						h on c.USERID= h.LOS_User /*and h.Status = 'Active'*/
+/*left join RCL_IMPORT_BRANCH					i on d.USERID= i.LOS_User /*and i.Status = 'Active'*/
+left join cfcpub.RCL_IMPORT_BM					i on d.USERID= i.LOS_User /*and i.Status = 'Active'*/
+order by 1
+;
+run;
+/*proc contents data=cfcpub.rcl_import_ro;*/
+
+proc freq data= app_users; table RO_id;
+/**/
+/*proc contents data=IDALPUB1.O_OCR_OPERATOR_ID_MB;*/
+
+proc contents data=app_users;
+
+proc sql;
+create table check_dup as
+select APPL_REF_NUM, count(*) as cnt
+from app_users
+group by 1
+having cnt > 1;
+run;
+
+data null;
+set app_users;
+if RO_id^= "" and RO_name = "";
+run;
+proc freq data=null; table RO_id;
+
+data null;
+set app_users;
+if RO_id IN ('DANMLN', 'DANROMLN');
+run;
+proc freq data=null; table RO_id;
+
+
+
+--8
+/* Write-off */
+/*data app_5;*/
+/*set cfcstudy.CR_COLLECTION_DUMP_HISTORY_PRD;*/
+/*keep startdate ref_text prinbalance bucket;*/
+/*where bucket = 'TB6';*/
+/*run;*/
+/**/
+/*proc sort data = app_5; by ref_text startdate;*/
+/**/
+/*data app_5;*/
+/*set app_5;*/
+/*by ref_text startdate;*/
+/*if first.ref_text;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table app_6 as*/
+/*select a.* , b.APPL_REF_NUM*/
+/*from app_5 a*/
+/*left join cfcstudy.LMS_LOAN_2 b on a.ref_text = b.ref_text;*/
+/*run;*/
+-- 9
+/*proc contents data=IDALPUB1.O_TRN_OCR_PDOC_DTLS_PRD;*/
+
+/*data 			O_TRN_OCR_PDOC_DTLS;*/
+/*set 			IDALPUB1.O_TRN_OCR_PDOC_DTLS_PRD;*/
+/*format 			disbursed_date date9. ;*/
+/*disbursed_date 	= input(trim(DISBURSAL_DATE),date11.);*/
+/*keep 			APPL_REF_NUM CS_amt ;*/
+/*				LOAN_AGREEMENT_NUMBER disbursed_date DISBURSAL_DATE ;*/
+/*where 			loan_type = 'PER';*/
+/*if 				CUSTOMER_AGREED = 'Y' then CS_amt = CREDIT_SHIELD_AMOUNT;*/
+/*run;*/
+-- 10
+
