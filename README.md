@@ -1,12 +1,23 @@
-# eMIS
+import tkinter.messagebox
 
-import os, os.path
-import win32com.client
+def run_macro():
+    print('macro')
 
-if os.path.exists("excelsheet.xlsm"):
-    xl=win32com.client.Dispatch("Excel.Application")
-    xl.Workbooks.Open(os.path.abspath("excelsheet.xlsm"), ReadOnly=1)
-    xl.Application.Run("excelsheet.xlsm!modulename.macroname")
-##    xl.Application.Save() # if you want to save then uncomment this line and change delete the ", ReadOnly=1" part from the open function.
-    xl.Application.Quit() # Comment this out if your excel script closes
-    del xl
+    #this if is here because if an executable is created, __file__ doesn't work
+    if getattr(sys, 'frozen', False):
+        name = (os.path.dirname(sys.executable) + '\Forecast template.xlsm')
+
+    else:
+        name = str(os.path.dirname(os.path.realpath(__file__)) + '\Forecast template.xlsm')
+
+    print(name)
+
+    #this part runs the macro from excel
+    if os.path.exists(name):
+        xl=win32com.client.Dispatch("Excel.Application")
+        xl.Workbooks.Open(Filename=name, ReadOnly=1)
+        xl.Application.Run("ThisWorkbook.LoopFilesInFolder")
+        xl.Application.Quit() # Comment this out if your excel script closes
+        del xl
+
+    print('File refreshed!')
