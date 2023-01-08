@@ -8,3 +8,4 @@ def home():
     app.run()
 icacls . /grant "NT AUTHORITY\IUSR:(OI)(CI)(RX)"
 icacls . /grant "Builtin\IIS_IUSRS:(OI)(CI)(RX)"
+[gg](https://github.com/mayurvkorde/Flask-Application-On-IIS)
