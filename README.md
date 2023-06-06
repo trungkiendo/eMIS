@@ -1,23 +1,11 @@
-import pandas as pd
-import sqlite3
+self.datamart_tree = ttk.Treeview(self.datamart_tab, columns=(
+    "Tb_No", "Datamart", "Table", "Old_Runtime", "Start_Runtime", "End_Runtime", "Rownum", "Status", "Desc"),
+    show="headings")
 
-# đọc dữ liệu từ file1.xlsx và lưu vào dataframe1
-dataframe1 = pd.read_excel('file1.xlsx')
+# Thêm khung bao quanh bảng
+self.datamart_tree.configure(borderwidth=2, relief="solid")
 
-# đọc dữ liệu từ file2.xlsx và lưu vào dataframe2
-dataframe2 = pd.read_excel('file2.xlsx')
-
-# kết nối với cơ sở dữ liệu SQLite
-conn = sqlite3.connect('database.db')
-
-# tạo đối tượng cursor
-cursor = conn.cursor()
-
-# cập nhật bảng table1 từ khung dữ liệu dataframe1
-dataframe1.to_sql('table1', conn, if_exists='replace', index=False)
-
-# cập nhật bảng table2 từ khung dữ liệu dataframe2
-dataframe2.to_sql('table2', conn, if_exists='replace', index=False)
-
-# đóng kết nối với cơ sở dữ liệu SQLite
-conn.close()
+# Thêm đường kẻ ngang và đứng
+self.datamart_tree.grid(column=0, row=0, sticky="nsew")
+self.datamart_tab.columnconfigure(0, weight=1)
+self.datamart_tab.rowconfigure(0, weight=1)
