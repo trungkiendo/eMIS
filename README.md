@@ -1,22 +1,38 @@
-self.datamart_tree.configure(columns=("Tb_No", "Datamart", "Table", "Old_Runtime", "Start_Runtime", "End_Runtime", "Rownum", "Status", "Desc"))
+from tkinter import *
+from tkinter import ttk
 
-self.datamart_tree.column("#0", width=0, stretch=tk.NO)
-self.datamart_tree.column("Tb_No", width=50, anchor="center")
-self.datamart_tree.column("Datamart", width=100, anchor="center")
-self.datamart_tree.column("Table", width=150, anchor="w")
-self.datamart_tree.column("Old_Runtime", width=150, anchor="center")
-self.datamart_tree.column("Start_Runtime", width=150, anchor="center")
-self.datamart_tree.column("End_Runtime", width=150, anchor="center")
-self.datamart_tree.column("Rownum", width=80, anchor="center")
-self.datamart_tree.column("Status", width=80, anchor="center")
-self.datamart_tree.column("Desc", width=200, anchor="w")
+TrvFrm = Tk()
+TrvFrm.title('TreeView Row Color')
+TrvFrm.geometry('500x350')
 
-self.datamart_tree.heading("Tb_No", text="Tb_No", anchor="center")
-self.datamart_tree.heading("Datamart", text="Datamart", anchor="center")
-self.datamart_tree.heading("Table", text="Table", anchor="w")
-self.datamart_tree.heading("Old_Runtime", text="Old_Runtime", anchor="center")
-self.datamart_tree.heading("Start_Runtime", text="Start_Runtime", anchor="center")
-self.datamart_tree.heading("End_Runtime", text="End_Runtime", anchor="center")
-self.datamart_tree.heading("Rownum", text="Rownum", anchor="center")
-self.datamart_tree.heading("Status", text="Status", anchor="center")
-self.datamart_tree.heading("Desc", text="Desc", anchor="w")
+style = ttk.Style(TrvFrm)
+
+# ttk Style theme
+style.theme_use("default")
+
+# Set treeview Row Colomn Color
+style.map('Treeview', background=[('selected', '#BFBFBF')])
+
+MyTrv = ttk.Treeview(TrvFrm, columns=('MyCl1', 'MyCl2', 'MyCl3'), show='headings', selectmode = 'browse')
+MyTrv.column("#0", width=60, minwidth=30, stretch=NO)
+MyTrv.column("MyCl1", width=80, minwidth=20, stretch=NO)
+MyTrv.column("MyCl2", width=100, minwidth=30, stretch=NO)
+MyTrv.column("MyCl3", width=100, minwidth=30, stretch=NO)
+
+MyTrv.heading('MyCl1', text='CLID')
+MyTrv.heading('MyCl2', text='CLName')
+MyTrv.heading('MyCl3', text='CLFName')
+
+# Set treeview row font color or foreground color
+MyTrv.tag_configure('Cl1', background = '#f9fbdb', foreground = '#c26981')
+MyTrv.tag_configure('Cl2', background = '#fbdbf1', foreground = '#6f9594')
+
+for sn in range(1, 6):
+    if (sn % 2) == 0:
+        MyTrv.insert('', END, values=('MyIDs' + str(sn), 'MyName' + str(sn), 'FName' + str(sn)), tags = 'Cl1')
+    else:
+        MyTrv.insert('', END, values=('MyIDs' + str(sn), 'MyName' + str(sn), 'FName' + str(sn)), tags = 'Cl2')
+
+MyTrv.pack(side=TOP, fill="both", expand=True)
+
+TrvFrm.mainloop()
