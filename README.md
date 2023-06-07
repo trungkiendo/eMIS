@@ -1,20 +1,18 @@
-import openpyxl
-import sqlite3
+def update_datamart_tab(self):
+    # Clear existing rows in datamart_tree
+    self.datamart_tree.delete(*self.datamart_tree.get_children())
 
-# Open the Excel file
-workbook = openpyxl.load_workbook('example.xlsx')
+    # Define a dictionary to map values in the "Desc" column to background colors
+    desc_to_color = {'A': 'blue', 'B': 'red', 'C': 'green'}
 
-# Select the worksheet
-worksheet = workbook.active
+    # Select data from the "dm_datamart" table in the database
+    cursor = self.conn.execute(
+        "SELECT Tb_No, Datamart, 1, Old_Runtime, Start_Runtime, End_Runtime, Rownum, Status, Desc FROM dm_datamart")
 
-# Connect to the SQLite database
-conn = sqlite3.connect('example.db')
-
-# Iterate over the rows in the worksheet and insert the data into the database
-for row in worksheet.iter_rows(values_only=True):
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO my_table (col1, col2, col3) VALUES (?, ?, ?)", row)
-    conn.commit()
-
-# Close the database connection
-conn.close()
+    # Add rows to datamart_tree
+    for row in cursor.fetchall():
+        # Determine the background color based on the value in the "Desc" column
+        background = desc_to_color.get(row[8], 'white')
+        
+        # Add the row to the treeview with the determined background color
+        self.add_datamart(*row, background=background)
