@@ -1,28 +1,46 @@
-def update_datamart_tab(self):
-    # Clear existing rows in datamart_tree
-    for row in self.datamart_tree.get_children():
-        self.datamart_tree.delete(row)
+import tkinter as tk
+from tkinter import ttk
 
-    # Select data from the "dm_datamart" table in the database
-    cursor = self.conn.execute(
-        "SELECT Tb_No, Datamart, Table_Name, Old_Runtime, Start_Runtime, End_Runtime, Rownum, Status, Desc FROM dm_datamart")
+# Tạo đối tượng Tkinter
+root = tk.Tk()
+root.geometry('400x300')
 
-    # Define tag names and corresponding background colors
-    tag_colors = {
-        'Finish': ('tag_blue', 'blue'),
-        'Unfinish': ('tag_red', 'red'),
-        'Error': ('tag_green', 'green'),
-        '': ('', 'white')
-    }
+# Tạo cây dữ liệu Treeview
+treeview = ttk.Treeview(root, columns=('Name', 'Age', 'Gender', 'Color'))
 
-    # Add rows to datamart_tree and assign tags with background colors based on Desc value
-    for row in cursor.fetchall():
-        item = self.add_datamart(*row)
-        desc_value = row[8]
-        if desc_value in tag_colors:
-            tag_name, bg_color = tag_colors[desc_value]
-        else:
-            tag_name, bg_color = tag_colors['']
-        self.datamart_tree.tag_configure(tag_name, background=bg_color)
-        if tag_name:
-            self.datamart_tree.item(item, tags=(tag_name,))
+# Thêm tiêu đề cho các cột
+treeview.heading('#0', text='ID', anchor='center')
+treeview.heading('Name', text='Name', anchor='center')
+treeview.heading('Age', text='Age', anchor='center')
+treeview.heading('Gender', text='Gender', anchor='center')
+treeview.heading('Color', text='Color', anchor='center')
+
+# Thêm dữ liệu vào cây dữ liệu
+data = [
+    ('001', 'Alice', 25, 'Female', 'Red'),
+    ('002', 'Bob', 30, 'Male', 'Green'),
+    ('003', 'Charlie', 35, 'Male', 'Blue'),
+    ('004', 'David', 40, 'Male', 'Red'),
+    ('005', 'Eve', 45, 'Female', 'Green'),
+]
+
+for i, row in enumerate(data):
+    item = treeview.insert('', 'end', text=i+1, values=row)
+    # Đặt tag cho dòng là tên màu trong cột "Color"
+    color = row[-1]
+    if color == 'Red':
+        tag_name = 'red'
+    elif color == 'Green':
+        tag_name = 'green'
+    elif color == 'Blue':
+        tag_name = 'blue'
+    else:
+        tag_name = ''
+    treeview.tag_configure(tag_name, background=color)
+    treeview.item(item, tags=(tag_name,))
+
+# Đặt cây dữ liệu vào giao diện
+treeview.pack(fill='both', expand=True)
+
+# Khởi chạy giao diện
+root.mainloop()
