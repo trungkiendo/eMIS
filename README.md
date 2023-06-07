@@ -1,31 +1,15 @@
-def update_datamart_tab(self):
-    # Clear existing rows in datamart_tree
-    for row in self.datamart_tree.get_children():
-        self.datamart_tree.delete(row)
-
-    # Select data from the "dm_datamart" table in the database
-    cursor = self.conn.execute(
-        "SELECT Tb_No, Datamart, 1, Old_Runtime, Start_Runtime, End_Runtime, Rownum, Status, Desc FROM dm_datamart")
-
-    # Add rows to datamart_tree
-    for row in cursor.fetchall():
-        # Add the row to the treeview
-        item = self.add_datamart(*row)
-
-        # Determine the background color based on the value in the "Desc" column
-        if row[8] == 'A':
-            tag_name = 'tag_blue'
-            bg_color = 'blue'
-        elif row[8] == 'B':
-            tag_name = 'tag_red'
-            bg_color = 'red'
-        elif row[8] == 'C':
-            tag_name = 'tag_green'
-            bg_color = 'green'
-        else:
-            tag_name = ''
-            bg_color = 'white'
-
-        # Tag the item with the corresponding tag and configure the tag to set the background color
-        self.datamart_tree.tag_configure(tag_name, background=bg_color)
-        self.datamart_tree.item(item, tags=(tag_name,))
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Python\lib\tkinter\__init__.py", line 1885, in __call__
+    return self.func(*args)
+  File "D:\Kien\Python\MIS_MONITOR\MIS_MONITOR\main.py", line 11, in show_datamart_screen
+    datamart = DatamartScreen(root, login.show_home_screen)
+  File "D:\Kien\Python\MIS_MONITOR\MIS_MONITOR\datamart_screen.py", line 148, in __init__
+    self.update_datamart_tab()
+  File "D:\Kien\Python\MIS_MONITOR\MIS_MONITOR\datamart_screen.py", line 182, in update_datamart_tab
+    self.datamart_tree.item(item, tags=(tag_name,))
+  File "C:\Python\lib\tkinter\ttk.py", line 1383, in item
+    return _val_or_dict(self.tk, kw, self._w, "item", item)
+  File "C:\Python\lib\tkinter\ttk.py", line 297, in _val_or_dict
+    res = tk.call(*(args + options))
+_tkinter.TclError: wrong # args: should be ".!toplevel2.!notebook.!frame.!treeview item item ?option ?value??..."
