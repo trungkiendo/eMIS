@@ -1,18 +1,11 @@
-def update_datamart_tab(self):
-    # Clear existing rows in datamart_tree
-    self.datamart_tree.delete(*self.datamart_tree.get_children())
-
-    # Define a dictionary to map values in the "Desc" column to background colors
-    desc_to_color = {'A': 'blue', 'B': 'red', 'C': 'green'}
-
-    # Select data from the "dm_datamart" table in the database
-    cursor = self.conn.execute(
-        "SELECT Tb_No, Datamart, 1, Old_Runtime, Start_Runtime, End_Runtime, Rownum, Status, Desc FROM dm_datamart")
-
-    # Add rows to datamart_tree
-    for row in cursor.fetchall():
-        # Determine the background color based on the value in the "Desc" column
-        background = desc_to_color.get(row[8], 'white')
-        
-        # Add the row to the treeview with the determined background color
-        self.add_datamart(*row, background=background)
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Python\lib\tkinter\__init__.py", line 1885, in __call__
+    return self.func(*args)
+  File "D:\Kien\Python\MIS_MONITOR\MIS_MONITOR\main.py", line 11, in show_datamart_screen
+    datamart = DatamartScreen(root, login.show_home_screen)
+  File "D:\Kien\Python\MIS_MONITOR\MIS_MONITOR\datamart_screen.py", line 148, in __init__
+    self.update_datamart_tab()
+  File "D:\Kien\Python\MIS_MONITOR\MIS_MONITOR\datamart_screen.py", line 201, in update_datamart_tab
+    self.add_datamart(*row, bg_color=background)
+TypeError: add_datamart() got an unexpected keyword argument 'bg_color'
