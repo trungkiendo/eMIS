@@ -1,18 +1,29 @@
-PROC SQL;
-SELECT libname
-FROM saslib;
-QUIT;
+import subprocess
 
-%macro loop_over_libraries;
-%let outdir = /path/to/output/folder;
-%let dsid = %sysfunc(open(&syslast));
-%let memcount = %sysfunc(attrn(&dsid, nobs));
-%do i = 1 %to &memcount;
-    %let libname = %sysfunc(getvarc(&dsid, 1));
-    PROC CONTENTS DATA=&libname.._all_ OUT=&outdir./&libname._all_info ALL LIBRARY=&libname LIST;
-    RUN;
-%end;
-%let rc = %sysfunc(close(&dsid));
-%mend loop_over_libraries;
+# Gọi tệp VB.NET để chạy SAS EGP
+subprocess.Popen\
+(['C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\vbnc.exe', '/out:C:\\path\\to\\output\\RunSAS.exe', '-target:exe', '-platform:x64', '-quiet', '-utf8output', '''
+Imports System
+Imports System.IO
+Imports System.Collections.Generic
+Imports SAS.Shared.Names
+Imports SAS.Tasks.Toolkit
+Imports SAS.Tasks.Toolkit.Controls
+Imports SAS.Tasks.Toolkit.Data
+Imports SAS.Tasks.Toolkit.DataImportExport
+Imports SAS.Tasks.Toolkit.DataUtilities
+Imports SAS.Tasks.Toolkit.Text
 
-%loop_over_libraries;
+Public Class Program
+    Public Shared Sub Main(ByVal args As String())
+        Dim sasWorkspaceManager As New SASWorkspaceManager()
+        Dim workspace As ISASTaskWorkspace = sasWorkspaceManager.CreateWorkspaceByServerName("MyServer")
+        Dim sasTask As New SAS.EG.ProjectElements.Tasks.ETL.SASProgramTask(workspace)
+        sasTask.Program = "C:\path\to\your\SAS\EGP\file.egp"
+        sasTask.Run()
+    End Sub
+End Class
+'''])
+
+# Chờ đợi quá trình chạy tệp VB.NET hoàn tất
+subprocess.Popen.wait()
