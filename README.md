@@ -1,10 +1,15 @@
-    schedule = pd.ExcelFile(os.path.join(dir_path, 'Input', "MIS_SCHEDULER_DATAMART.xlsx"))
-    datasource = pd.ExcelFile(os.path.join(dir_path, 'Input', "MIS_LOG_DATASOURCE_DAILY.xlsx"))
-    datamart = pd.ExcelFile(os.path.join(dir_path, 'Input', "MIS_LOG_DATAMART.xlsx"))
-    # Remove a file MIS_SCHEDULER_DATAMART.xlsx
-    os.remove(os.path.join(dir_path, 'Input', "MIS_SCHEDULER_DATAMART.xlsx"))
-    # Data frame
-    df = pd.read_excel(schedule, 'MIS_SCHEDULER_DATAMART',dtype={'Code':str,'Run_time':datetime,'Time_Finish':datetime})
-    df1 = pd.read_excel(datasource, 'MIS_LOG_DATASOURCE_DAILY',dtype={'Code':str,'Code':str,'crdate':datetime})
-    df2 = pd.read_excel(datamart, 'MIS_LOG_DATAMART', dtype={'Tb_No': str})
-    writer = pd.ExcelWriter(output_name, engine='xlsxwriter', datetime_format='dd/mm/yyyy|hh:mm:ss')
+%macro loop_over_libraries;
+%let liblist = mylib1 mylib2 mylib3;
+%let outdir = /path/to/output/folder;
+%let dsid = %sysfunc(open(&syslast));
+%let memcount = %sysfunc(attrn(&dsid, nobs));
+%do i = 1 %to &memcount;
+    %let libname = %sysfunc(getvarc(&dsid, 1));
+    %let memname = %sysfunc(getvarc(&dsid, 2));
+    PROC CONTENTS DATA=&libname..&memname OUT=&outdir./&libname._&memname._info ALL LIBRARY=&libname LIST;
+    RUN;
+%end;
+%let rc = %sysfunc(close(&dsid));
+%mend loop_over_libraries;
+
+%loop_over_libraries;
