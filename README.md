@@ -1,32 +1,35 @@
-/* Tạo danh sách các thư viện SAS cần xuất */
-%let liblist = lib1 lib2 lib3;
+import csv
+import sqlite3
+import os
 
-/* Tạo bảng tạm thời để lưu thông tin về các tập tin SAS */
-data temp;
-  length libname memname memtype $32;
-  keep libname memname memtype;
-run;
+# Lấy tên file CSV và tên bảng từ tên file CSV
+filename = 'data.csv'
+table_name = os.path.splitext(filename)[0]
 
-/* Vòng lặp chạy PROC CONTENTS cho mỗi thư viện SAS và lưu thông tin vào bảng tạm thời */
-%macro save_contents;
-  %do i=1 %to %sysfunc(countw(&liblist));
-    %let lib=%scan(&liblist,&i);
+# Kết nối đến cơ sở dữ liệu SQLite
+conn = sqlite3.connect('mydatabase.db')
+cursor = conn.cursor()
 
-    proc contents data=&lib._all_ noprint out=contents;
-    run;
+# Kiểm tra xem bảng đã tồn tại trong cơ sở dữ liệu SQLite chưa
+cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+if cursor.fetchone()[0] == 1:
+    print(f"Table '{table_name}' already exists, skipping table creation")
+else:
+    # Tạo bảng trong cơ sở dữ liệu
+    with open(filename, 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        header = next(csvreader)
+        columns = ', '.join([f"{c} TEXT" for c in header])
+        cursor.execute(f"CREATE TABLE {table_name} ({columns})")
+        print(f"Table '{table_name}' created")
 
-    proc sql noprint;
-      insert into temp
-      select distinct "&lib" as libname, memname, memtype
-      from contents;
-    quit;
+# Đọc dữ liệu từ file CSV và chèn vào bảng trong cơ sở dữ liệu
+with open(filename, 'r') as csvfile:
+    csvreader = csv.reader(csvfile)
+    next(csvreader)  # bỏ qua hàng tiêu đề
+    for row in csvreader:
+        cursor.execute(f'INSERT INTO {table_name} VALUES ({",".join(["?"] * len(row))})', row)
 
-  %end;
-%mend;
-
-/* Chạy macro để lưu PROC CONTENTS của tất cả các thư viện SAS vào bảng tạm thời */
-%save_contents;
-
-/* Hiển thị thông tin trong bảng tạm thời */
-proc print data=temp noobs;
-run;
+# Lưu lại các thay đổi và đóng kết nối đến cơ sở dữ liệu
+conn.commit()
+conn.close()
