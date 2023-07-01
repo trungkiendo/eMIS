@@ -1,27 +1,22 @@
-%macro check_tables(egp_file);
-   /* Truy xuất các thông tin về các bảng trong file .egp */
-   proc metadata in="&egp_file"
-                 out=tables
-                 metadatalevel=1
-                 select=Name Type;
-   run;
-   
-   /* Tạo danh sách các bảng */
-   data table_list;
-      set tables;
-      where Type = 'Table';
-      keep Name;
-   run;
-   
-   /* Kiểm tra các bảng và chạy file .egp nếu các bảng đã được cập nhật */
-   data _null_;
-      set table_list;
-      call execute('%check_table_update(libname=mylib, tablename='||trim(Name)||')');
-      %if &syserr. = 0 %then %do;
-         rc = system('"%sasexe%" -sysin "&egp_file"');
-      %end;
-   run;
-%mend;
+%macro check_table_update(libname=, tablename=);
 
-/* Chạy macro */
-%check_tables('C:\path\to\your\egp\file.egp');
+/* Tạo macro variable chứa ngày hiện tại */
+%let today = %sysfunc(today());
+
+/* Tạo macro variable chứa ngày tạo của bảng */
+proc sql noprint;
+   select crdate into :table_crdate
+   from dictionary.tables
+   where libname = upcase("&libname.")
+     and memname = upcase("&tablename.");
+quit;
+
+/* Kiểm tra ngày tạo của bảng và xác định xem bảng đã được cập nhật hay chưa */
+%if "&table_crdate." = "&today." %then %do;
+   %put Table &libname..&tablename. has been updated.;
+%end;
+%else %do;
+   %put Table &libname..&tablename. has not been updated.;
+%end;
+
+%mend check_table_update;
