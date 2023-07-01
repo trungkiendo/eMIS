@@ -1,22 +1,15 @@
-%macro check_table_update(libname=, tablename=);
+   /* Mở file .egp */
+   proc catalog cat="&egp_file" memtype="project" out=myproject;
+   run;
 
-/* Tạo macro variable chứa ngày hiện tại */
-%let today = %sysfunc(today());
-
-/* Tạo macro variable chứa ngày tạo của bảng */
-proc sql noprint;
-   select crdate into :table_crdate
-   from dictionary.tables
-   where libname = upcase("&libname.")
-     and memname = upcase("&tablename.");
-quit;
-
-/* Kiểm tra ngày tạo của bảng và xác định xem bảng đã được cập nhật hay chưa */
-%if "&table_crdate." = "&today." %then %do;
-   %put Table &libname..&tablename. has been updated.;
-%end;
-%else %do;
-   %put Table &libname..&tablename. has not been updated.;
-%end;
-
-%mend check_table_update;
+   /* Truy xuất danh sách các đối tượng trong file .egp */
+   proc catalog cat=myproject out=objects;
+   run;
+   
+   /* Tạo danh sách các bảng */
+   data table_list;
+      set objects;
+      where type = 'Table' and libref = 'WORK';
+      keep name;
+   run;
+   
