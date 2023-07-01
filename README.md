@@ -1,18 +1,32 @@
-/* Tạo bảng macro_table */
-data macro_table;
-   length STT 8 macro_name $32 macro_code $1000;
-   input STT macro_name $ macro_code $;
-   datalines;
-1 my_macro "%macro my_macro; /* Đoạn mã xử lý của hàm macro */ /* Trả về bảng có tên là mytable */ proc sql; create table mytable as select * from sashelp.class; quit; %mend my_macro;";
-2 my_macro2 "%macro my_macro2; /* Đoạn mã xử lý của hàm macro */ /* Trả về bảng có tên là mytable2 */ proc sql; create table mytable2 as select name, sex, age from sashelp.class; quit; %mend my_macro2;";
-;
+/* Thiết lập đường dẫn đến file .egp */
+%let egp_file = C:\path\to\your\egp\file.egp;
+
+/* Kiểm tra các bảng trong file .egp */
+%macro check_tables();
+   /* Truy xuất các thông tin về các bảng trong file .egp */
+   proc metadata in="&egp_file"
+                 out=tables
+                 metadatalevel=1
+                 select=Name Type;
+   run;
+   
+   /* Tạo danh sách các bảng */
+   data table_list;
+      set tables;
+      where Type = 'Table';
+      keep Name;
+   run;
+   
+   /* Kiểm tra các bảng */
+   data _null_;
+      set table_list;
+      call execute('%check_table_update(libname=mylib, tablename='||trim(Name)||')');
+   run;
+%mend;
+
+/* Chạy macro kiểm tra các bảng */
+%check_tables;
+
+/* Chạy file .egp */
+proc stp stprepository="&egp_file";
 run;
-
-/* Đọc code macro từ bảng */
-%let macro_code = %sysfunc(quote(%qsysfunc(getvarc(macro_table, %sysfunc(varnum(macro_table, macro_code))))));
-%put &macro_code.;
-
-/* Sử dụng code macro */
-%let macro_code_resolved = %sysfunc(resolve(&macro_code.));
-%put &macro_code_resolved.;
-%macro_code_resolved.;
