@@ -1,8 +1,4 @@
-/* Thiết lập đường dẫn đến file .egp */
-%let egp_file = C:\path\to\your\egp\file.egp;
-
-/* Kiểm tra các bảng trong file .egp */
-%macro check_tables();
+%macro check_tables(egp_file);
    /* Truy xuất các thông tin về các bảng trong file .egp */
    proc metadata in="&egp_file"
                  out=tables
@@ -17,16 +13,15 @@
       keep Name;
    run;
    
-   /* Kiểm tra các bảng */
+   /* Kiểm tra các bảng và chạy file .egp nếu các bảng đã được cập nhật */
    data _null_;
       set table_list;
       call execute('%check_table_update(libname=mylib, tablename='||trim(Name)||')');
+      %if &syserr. = 0 %then %do;
+         rc = system('"%sasexe%" -sysin "&egp_file"');
+      %end;
    run;
 %mend;
 
-/* Chạy macro kiểm tra các bảng */
-%check_tables;
-
-/* Chạy file .egp */
-proc stp stprepository="&egp_file";
-run;
+/* Chạy macro */
+%check_tables('C:\path\to\your\egp\file.egp');
