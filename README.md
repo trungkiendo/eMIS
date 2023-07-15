@@ -1,32 +1,20 @@
-/* Bước 1: Xác định tên các bảng được sử dụng trong file SAS .egp */
-/* Thêm tên bảng vào danh sách TABLE_NAMES */
-data _null_;
-   length code $ 200;
-   infile "<đường_dẫn_đến_file_SAS.egp>" truncover;
-   input;
-   if index(_infile_,'QUERY')>0 then do;
-      code = _infile_;
-      code = tranwrd(code,'QUERY','PROC SQL noprint select distinct ');
-      code = tranwrd(code,'FROM','from ');
-      code = tranwrd(code,';',',;');
-      call execute(code);
-   end;
-run;
+import zipfile
+from lxml import etree
 
-%put TABLE_NAMES= &TABLE_NAMES; /* in danh sách các bảng được sử dụng */
+# Đường dẫn đến file SAS .egp
+egp_file = "path/to/your/sas_project.egp"
 
-/* Bước 2: Liệt kê tất cả các bảng trong thư mục làm việc hiện tại */
-proc contents data=_all_ out=contents noprint;
-run;
+# Giải nén file SAS .egp và lấy danh sách các file .xml trong thư mục "Project"
+with zipfile.ZipFile(egp_file) as zf:
+    xml_files = zf.namelist()
+    xml_files = [f for f in xml_files if f.startswith("Project/") and f.endswith(".xml")]
 
-/* Bước 3: Lọc và in ra các bảng được sử dụng trong file SAS .egp */
-/* Tạo một bảng mới chứa danh sách các bảng được sử dụng */
-data myTables;
-   set contents;
-   where upcase(memname) in (&TABLE_NAMES);
-run;
-
-/* In danh sách các bảng được sử dụng */
-proc print data=myTables noobs;
-   var memname;
-run;
+# Tìm kiếm tên các bảng trong các file .xml tương ứng và in ra
+for xml_file in xml_files:
+    with zipfile.ZipFile(egp_file).open(xml_file) as f:
+        xml_data = f.read()
+        root = etree.fromstring(xml_data)
+        for query in root.xpath("//Tree[@Type='query']"):
+            table_names = query.xpath(".//Table[@Type='table' or @Type='view']/@Name")
+            for table_name in table_names:
+                print(table_name)
