@@ -22,7 +22,12 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
             # Tìm các đoạn code trong file program bằng regex
             code_blocks = re.findall(r'(?s)\bdata\b.*?\b;|(?s)\bproc\b.*?\b;|\bdef\b.*?:\n.*?(?=^\S|\Z)', program_content)
             
-            # In ra các đoạn code
+            # Tìm tất cả các bảng có trong các đoạn code
+            tables = set()
             for code_block in code_blocks:
-                print(f"Code block in {program_file}:")
-                print(code_block)
+                table_names = re.findall(r'\btable\b\s+(\S+)', code_block)
+                tables.update(table_names)
+            
+            # In ra tất cả các bảng
+            for table in tables:
+                print(f"Table {table} is used in {program_file}")
