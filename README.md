@@ -1,5 +1,6 @@
 import zipfile
 import xml.etree.ElementTree as ET
+import re
 
 # Đường dẫn đến file .egp
 egp_file = 'path/to/your/egp/file.egp'
@@ -8,20 +9,20 @@ egp_file = 'path/to/your/egp/file.egp'
 with zipfile.ZipFile(egp_file, 'r') as zip_file:
     # Lấy danh sách các file trong .egp
     file_list = zip_file.namelist()
-    
-    # Lọc ra các file có phần mở rộng là ".egp"
-    egp_files = [f for f in file_list if f.endswith('.egp')]
-    
-    # Duyệt qua từng file .egp để lấy danh sách các bảng
-    for egp_file in egp_files:
-        with zip_file.open(egp_file) as f:
-            # Đọc nội dung file .egp dưới dạng string
-            egp_content = f.read().decode('utf-8')
+
+    # Tìm các file program có đuôi .sas hoặc .py
+    program_files = [f for f in file_list if f.endswith('.sas') or f.endswith('.py')]
+
+    # Duyệt qua từng file program và tìm các đoạn code
+    for program_file in program_files:
+        with zip_file.open(program_file) as f:
+            # Đọc nội dung file program
+            program_content = f.read().decode('utf-8')
             
-            # Phân tích cấu trúc XML của file .egp
-            root = ET.fromstring(egp_content)
+            # Tìm các đoạn code trong file program bằng regex
+            code_blocks = re.findall(r'(?s)\bdata\b.*?\b;|(?s)\bproc\b.*?\b;|\bdef\b.*?:\n.*?(?=^\S|\Z)', program_content)
             
-            # Tìm tất cả các bảng trong file .egp
-            for table in root.findall('.//table'):
-                table_name = table.get('name')
-                print(f"Table name: {table_name}")
+            # In ra các đoạn code
+            for code_block in code_blocks:
+                print(f"Code block in {program_file}:")
+                print(code_block)
