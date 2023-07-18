@@ -22,8 +22,10 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
             # Tìm tất cả các lệnh FROM hoặc JOIN bằng regex
             from_tables = re.findall(r'(?i)\b(?:from|join)\b\s+(\S+)', program_content)
             
-            # Loại bỏ các bảng mới được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROC SQL
+            # Tìm tất cả các bảng được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROC SQL
             create_tables = re.findall(r'(?si)\bproc\s+sql\b.*?\b(?:create|table)\b\s+(\S+)', program_content)
+            
+            # Loại bỏ các bảng mới được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROC SQL
             from_tables = [table for table in from_tables if table not in create_tables]
             
             # Loại bỏ các bảng mới được tạo ra thông qua lệnh OUTPUT trong các PROC khác
