@@ -1,3 +1,6 @@
+# Import thư viện os để thao tác với đường dẫn tệp
+import os
+
 # Khởi tạo mảng chứa nhiều mảng chuỗi
 arr = [["apple", "banana", "orange"], ["banana", "orange", "pear"], ["orange", "pear", "apple"], ["apple", "banana", "orange"]]
 
@@ -13,6 +16,14 @@ for subarr in arr:
     # Thêm các từ vào đối tượng set unique_words để loại bỏ các từ trùng lặp
     unique_words.update(words)
     
-# Duyệt qua các từ trong đối tượng set unique_words và in ra chúng thành một cột
-for word in unique_words:
-    print(word)
+# Tạo một đường dẫn tới tệp để lưu trữ kết quả
+result_file = os.path.join(os.getcwd(), "unique_words.txt")
+
+# Mở tệp để ghi kết quả
+with open(result_file, "w") as f:
+    # Duyệt qua các từ trong đối tượng set unique_words và ghi chúng vào tệp
+    for word in unique_words:
+        f.write(word + "\n")
+        
+# In ra thông báo khi hoàn thành
+print("Đã lưu kết quả vào tệp", result_file)
