@@ -1,38 +1,19 @@
-['ETLPUB01.CC_CLIENT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'etlpub01.CC_APPL_PRODUCT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'client', 'card', 'contract', 'card_active_date', 'card_closed_date', 'Branch', 'client_card']
-['Thinh*/', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'ETLPUB01.CC_USAGE_ACTION_PRD', 'ETLPUB01.CC_EVENT_TYPE_PRD', 'card_event', 'card_event']
-[]
-['Thinh*/', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'ETLPUB01.CC_USAGE_ACTION_PRD', 'ETLPUB01.CC_EVENT_TYPE_PRD', 'card_event', 'card_event']
-['etlpub01.cc_doc_prd', 'cfcpub01.MrSun_card_transaction_type', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'payment']
-[]
-['etlpub01.cc_opt_col_data_prd', 'enr']
-['ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD', 'ETLPUB01.CC_BRANCH_PRD']
-['ETLPUB01.CC_CLIENT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'etlpub01.CC_APPL_PRODUCT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'client', 'card', 'contract', 'card_active_date', 'card_closed_date', 'Branch', 'client_card']
-['etlpub01.cc_doc_prd', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'cfcpub01.mrsun_card_transaction_type', 'daily_transaction']
-['temp;', 'ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD']
-['ETLPUB01.CC_CLIENT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'etlpub01.CC_APPL_PRODUCT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'client', 'card', 'contract', 'card_active_date', 'card_closed_date', 'Branch', 'client_card']
-['Thinh*/', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'ETLPUB01.CC_USAGE_ACTION_PRD', 'ETLPUB01.CC_EVENT_TYPE_PRD', 'card_event', 'card_event']
-['etlpub01.cc_doc_prd', 'cfcpub01.MrSun_card_transaction_type', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'payment']
-[]
-['etlpub01.cc_opt_col_data_prd', 'enr']
-['ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD', 'ETLPUB01.CC_BRANCH_PRD']
-['etlpub01.cc_doc_prd', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'cfcpub01.mrsun_card_transaction_type', 'daily_transaction']
-['temp;', 'ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD']
-['ETLPUB01.CC_CLIENT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'etlpub01.CC_APPL_PRODUCT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'client', 'card', 'contract', 'card_active_date', 'card_closed_date', 'Branch', 'client_card']
-['Thinh*/', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'ETLPUB01.CC_USAGE_ACTION_PRD', 'ETLPUB01.CC_EVENT_TYPE_PRD', 'card_event', 'card_event']
-[]
-['Thinh*/', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'ETLPUB01.CC_USAGE_ACTION_PRD', 'ETLPUB01.CC_EVENT_TYPE_PRD', 'card_event', 'card_event']
-['etlpub01.cc_doc_prd', 'cfcpub01.MrSun_card_transaction_type', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'payment']
-[]
-['etlpub01.cc_opt_col_data_prd', 'enr']
-['ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD', 'ETLPUB01.CC_BRANCH_PRD']
-['ETLPUB01.CC_CLIENT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'etlpub01.CC_APPL_PRODUCT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'client', 'card', 'contract', 'card_active_date', 'card_closed_date', 'Branch', 'client_card']
-['etlpub01.cc_doc_prd', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'cfcpub01.mrsun_card_transaction_type', 'daily_transaction']
-['temp;', 'ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD']
-['ETLPUB01.CC_CLIENT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'etlpub01.CC_APPL_PRODUCT_PRD', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'cfcpub01.MrSun_card_status', 'client', 'card', 'contract', 'card_active_date', 'card_closed_date', 'Branch', 'client_card']
-['Thinh*/', 'ETLPUB01.CC_ACNT_CONTRACT_PRD', 'ETLPUB01.CC_USAGE_ACTION_PRD', 'ETLPUB01.CC_EVENT_TYPE_PRD', 'card_event', 'card_event']
-['etlpub01.cc_doc_prd', 'cfcpub01.MrSun_card_transaction_type', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'payment']
-[]
-['etlpub01.cc_opt_col_data_prd', 'enr']
-['ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD', 'ETLPUB01.CC_BRANCH_PRD']
-['etlpub01.cc_doc_prd', 'ETLPUB01.CC_M_TRANSACTION_PRD', 'cfcpub01.mrsun_card_transaction_type', 'daily_transaction']
-['temp;', 'ETLPUB01.CC_CONTR_STATUS_PRD', 'ETLPUB01.CC_TRANS_TYPE_PRD']
+# Các mảng ban đầu
+arr1 = ['apple', 'banana', 'orange', 'pear', 'cherry']
+arr2 = ['apple', 'pear', 'grape', 'kiwi', 'orange']
+arr3 = ['cherry', 'kiwi', 'mango', 'peach']
+arr4 = ['orange', 'pear', 'apple']
+
+# Tạo một tập hợp rỗng để lưu các phần tử không bị trùng
+unique_set = set()
+
+# Duyệt qua từng mảng và từng phần tử trong mỗi mảng, nếu phần tử đó chưa có trong tập hợp thì thêm nó vào tập hợp
+for item in arr1 + arr2 + arr3 + arr4:
+    if item not in unique_set:
+        unique_set.add(item)
+
+# Chuyển tập hợp sang mảng để lấy danh sách các phần tử không bị trùng
+unique_arr = list(unique_set)
+
+# In mảng mới
+print(unique_arr)
