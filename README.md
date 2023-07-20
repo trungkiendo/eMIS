@@ -61,24 +61,26 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
                     create_output_table_df = create_output_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
                     seen_tables.add(table)
 
-            # Loại bỏ các bảng được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROC SQL hoặc đã xuất hira khỏi danh sách các bảng trong lệnh FROM hoặc JOIN
-            from_tables = [table for table in from_tables if table not in create_output_table_list]
+            # Tìm các bảng từ lệnh FROM hoặc JOIN
+            from_tables = re.findall(r'(?i)\b(?:from|join)\b\s+(\S+)', program_content)
 
-            # Thêm các bảng từ lệnh FROM hoặc JOIN vào DataFrame from_table_df
-            from_tables = [table.upper().strip('[]') for table in from_tables if table.split('.')[0].upper() in library]
-            from_tables =[table for table in from_tables if re.sub(r'[\'\"\(\)|*\/to;:]', '', table).split('.')[0].upper() in library]
+            # Lọc các bảng theo thư viện được chỉ định từ đầu
+            from_tables = [table.upper().strip('[]') for table in from_tables]
+            from_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in from_tables]
+            from_tables = [table for table in from_tables if table.split('.')[0].upper() in library]
+            from_tables = list(set(from_tables))
+
+            # Thêm các bảng từ lệnh FROM hoặc JOIN vào danh sách từ bảng đã xuất hiện và loại bỏ các bảng trong danh sách tạo mới hoặc xuất ra
             for table in from_tables:
-                from_table_df = from_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
+                if table not in seen_tables:
+                    if table not in create_output_table_list:
+                        from_table_df = from_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
+                        seen_tables.add(table)
 
-# In ra danh sách các bảng từ FROM hoặc JOIN
-print('Tables from FROM or JOIN:')
-print(from_table_df)
-
-# In ra danh sách các bảng được tạo mới hoặc xuất ra
-print('Tables from CREATE or OUTPUT:')
-print(create_output_table_df)
+# Xóa các bảng trùng lặp trong DataFrame create_output_table_df
+create_output_table_df.drop_duplicates(inplace=True)
 
 # Xuất kết quả vào file Excel
-with pd.ExcelWriter('output.xlsx') as writer:
-    from_table_df.to_excel(writer, sheet_name='FROM or JOIN')
-    create_output_table_df.to_excel(writer, sheet_name='CREATE or OUTPUT')
+with pd.ExcelWriter('Table_List.xlsx') as writer:
+    create_output_table_df.to_excel(writer, sheet_name='Created/Output Tables', index=False)
+    from_table_df.to_excel(writer, sheet_name='From/Join Tables', index=False)
