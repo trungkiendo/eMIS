@@ -1,3 +1,1 @@
-
-table_name = '***MyTable!@#$%^&()_+-=[]{}|;:\'",.<>/? \t\n\r'
-table_name = table_name.strip(string.punctuation + string.whitespace)
+from_tables = [re.sub(r'[\'\";:]', '', table) for table in from_tables]
