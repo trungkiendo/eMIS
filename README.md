@@ -3,17 +3,19 @@ import zipfile
 import xml.etree.ElementTree as ET
 import re
 import os
-import string
 
 # Khởi tạo một tập hợp để lưu trữ các bảng đã xuất hiện
 seen_tables = set()
 
 # Khởi tạo một DataFrame để lưu trữ các bảng
-table_df = pd.DataFrame(columns=[ 'File Name', 'Table'])
+table_df = pd.DataFrame(columns=['File Name', 'Table'])
+
 # Lọc các bảng theo thư viện
 library = ("IDALPUB1", "ETLPUB01", "CFCPUB01", "CFCPUB", "CFCSTUDY")
+
 # Đường dẫn đến file .egp
 egp_file = 'C:/DANH BUI/DATAMART/15. CR_CUSTOMER/Cr_customer_newcore.egp'
+
 # Lấy tên file .egp từ đường dẫn
 egp_file_name = os.path.basename(egp_file)
 
@@ -46,31 +48,36 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
             create_tables = [table.upper().strip('[]') for table in create_tables if
                              table.split('.')[0].upper() in library]
             create_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in create_tables]
-            print(create_tables)
 
             # Tạo danh sách bảng tạo mới
             new_tables = list(set(create_tables))
 
-            # Xuất ra danh sách bảng tạo mới
+            # Thêm các bảng tạo mới vào danh sách đã xuất hiện
             for table in new_tables:
                 if table not in seen_tables:
-                    print(table)
+                    table_df = table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
                     seen_tables.add(table)
+
             output_tables = [table.upper().strip('[]') for table in output_tables if
                              table.split('.')[0].upper() in library]
             output_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in output_tables]
+
             # Loại bỏ các bảng được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROC SQL
             from_tables = [table for table in from_tables if table not in create_tables]
 
             # Loại bỏ các bảng được tạo ra thông qua lệnh OUTPUT trong các PROC khác
             from_tables = [table for table in from_tables if table not in output_tables]
-            # Xử lý tên table để bỏ các ký tự đặc biệt
+
+            # Loại bỏ các ký tự đặc biệt trong tên bảng
             from_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in from_tables]
-            # In ra tất cả các bảngv    vivi    vi1v
+
+            # Thêm các bảng mới vàoTiếp tục phần còn lại của đoạn mã:
+
+```python
             for table in from_tables:
                 if table not in seen_tables:
                     table_df = table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
                     seen_tables.add(table)
-# print(table_df)
+
 # Lưu DataFrame vào file Excel
-table_df.to_excel('table_list.xlsx', index=False)
+table_df.to_excel('new_table_list.xlsx', index=False)
