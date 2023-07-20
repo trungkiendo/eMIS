@@ -1,7 +1,3 @@
-import os
 
-# Lấy tên file .egp từ đường dẫn
-egp_file_name = os.path.basename(egp_file)
-
-# In tên file .egp
-print(f'Tên file .egp là: {egp_file_name}')
+table_name = '***MyTable!@#$%^&()_+-=[]{}|;:\'",.<>/? \t\n\r'
+table_name = table_name.strip(string.punctuation + string.whitespace)
