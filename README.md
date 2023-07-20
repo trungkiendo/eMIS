@@ -1,3 +1,7 @@
+import os
 
-            # Xử lý tên table để bỏ các ký tự đặc biệt
-            from_tables = [re.sub(r'[^\w\s]', '', table) for table in from_tables]
+# Lấy tên file .egp từ đường dẫn
+egp_file_name = os.path.basename(egp_file)
+
+# In tên file .egp
+print(f'Tên file .egp là: {egp_file_name}')
