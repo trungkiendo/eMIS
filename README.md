@@ -29,6 +29,7 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
 
     # Duyệt qua từng file program và tìm các bảng
     for program_file in program_files:
+        egp_file_name = os.path.basename(egp_file)
         with zip_file.open(program_file) as f:
             # Đọc nội dung file program
             program_content = f.read().decode('utf-8')
@@ -40,7 +41,7 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
             create_tables = re.findall(r'(?si)\bproc\s+sql\b.*?\b(?:create|table)\b\s+(\S+)', program_content)
 
             # Tìm tất cả các bảng được tạo ra thông qua lệnh OUTPUT trong các PROC khác
-            output_tables = re.findall(r'(?si)\bproc\s+(?!sql)\w*\b.*?\boutput\b\s+(\S+)', program_content)
+            output_tables = re.findall(r'(?si)\bproc\s+(?!sql)\w*\b.*?\b(?:create|table|output)\b\s+(\S+)', program_content)
 
             # Lọc các bảng theo thư viện được chỉ định từ đầu
             from_tables = [table.upper().strip('[]') for table in from_tables if table.split('.')[0].upper() in library]
@@ -48,9 +49,12 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
             create_tables = [table.upper().strip('[]') for table in create_tables if
                              table.split('.')[0].upper() in library]
             create_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in create_tables]
+            output_tables = [table.upper().strip('[]') for table in output_tables if
+                             table.split('.')[0].upper() in library]
+            output_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in output_tables]
 
-            # Tạo danh sách bảng tạo mới
-            new_tables = list(set(create_tables))
+            # Kết hợp danh sách các bảng được tạo ra bằng lệnh CREATE và OUTPUT
+            new_tables = list(set(create_tables + output_tables))
 
             # Thêm các bảng tạo mới vào danh sách đã xuất hiện
             for table in new_tables:
@@ -58,41 +62,15 @@ with zipfile.ZipFile(egp_file, 'r') as zip_file:
                     create_table_df = create_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
                     seen_tables.add(table)
 
-            output_tables = [table.upper().strip('[]') for table in output_tables if
-                             table.split('.')[0].upper() in library]
-            output_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in output_tables]
+            # Loại bỏ các bảng được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROC SQL hoặc đã xuất hiện trước đó
+            from_tables = [table for table in from_tables if table not in new_tables and table not in seen_tables]
 
-            # Loại bỏ các bảng được tạo ra thông qua lệnh CREATE hoặc TABLE trong PROCTiếp tục đoạn mã:
-
-            # SQL có trong danh sách bảng FROM hoặc JOIN
-            from_tables_in_sql = []
-
-            # Duyệt qua từng lệnh FROM hoặc JOIN và tìm bảng trong SQL
-            for from_table in from_tables:
-                # Kiểm tra xem bảng có đang được tạo mới hay không
-                if from_table not in new_tables and from_table not in seen_tables:
-                    # Tìm tất cả các lệnh SQL trong file program
-                    sql_commands = re.findall(r'(?si)\bproc\s+sql\b.*?\bquit\b', program_content)
-
-                    # Duyệt qua từng lệnh SQL và kiểm tra xem bảng có được sử dụng hay không
-                    for sql_command in sql_commands:
-                        if from_table in sql_command:
-                            from_tables_in_sql.append(from_table)
-                            seen_tables.add(from_table)
-                            from_table_df = from_table_df.append({'Table': from_table, 'File Name': egp_file_name}, ignore_index=True)
-                            break
-
-            # Thêm các bảng FROM hoặc JOIN được sử dụng trong SQL vào danh sách đã xuất hiện
-            for table in from_tables_in_sql:
+            # Thêm các bảng FROM hoặc JOIN được sử dụng vào danh sách đã xuất hithiện
+            for table in from_tables:
+                from_table_df = from_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
                 seen_tables.add(table)
 
-# Tạo một đối tượng ExcelWriter để xuất dữ liệu vào file Excel
-with pd.ExcelWriter('output.xlsx') as writer:
-    # Xuất DataFrame chứa các bảng FROM hoặc JOIN ra sheet 'FROM Tables'
-    from_table_df.to_excel(writer, sheet_name='FROM Tables', index=False)
-
-    # Xuất DataFrame chứa các bảng tạo mới ra sheet 'Created Tables'
-    create_table_df.to_excel(writer, sheet_name='Created Tables', index=False)
-
-# In thông báo hoàn thành
-print('Export completed!')
+# Ghi danh sách các bảng đã xuất hiện vào file Excel
+with pd.ExcelWriter('table_list.xlsx') as writer:
+    from_table_df.to_excel(writer, sheet_name='From Tables', index=False)
+    create_table_df.to_excel(writer, sheet_name='Create Tables', index=False)
