@@ -1,15 +1,12 @@
-# Khởi tạo mảng chứa 7 mảng con
-arr = [["apple", "banana", "orange"], ["banana", "orange", "pear"], ["orange", "pear", "apple"], ["apple", "banana", "orange"], ["pear", "orange", "banana"], ["banana", "apple", "pear"], ["orange", "pear", "banana"]]
+import pandas as pd
 
-# Khởi tạo một đối tượng set để lưu trữ các từ không trùng lặp
-unique_words = set()
+# Khởi tạo một DataFrame để lưu trữ các bảng
+table_df = pd.DataFrame(columns=['Table', 'File'])
 
-# Duyệt qua từng mảng con trong mảng chính
-for subarr in arr:
-    # Duyệt qua từng từ trong mảng con và thêm nó vào đối tượng set unique_words
-    for word in subarr:
-        unique_words.add(word)
-    
-# Duyệt qua các từ trong đối tượng set unique_words và in ra chúng thành một cột
-for word in unique_words:
-    print(word)
+        
+        # Thêm các bảng vào DataFrame
+        for table in tables:
+            table_df = table_df.append({'Table': table, 'File': program_file}, ignore_index=True)
+
+# Lưu DataFrame vào file Excel
+table_df.to_excel('table_list.xlsx', index=False)
