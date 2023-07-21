@@ -1,4 +1,7 @@
 import os
+import zipfile
+import pandas as pd
+import re
 
 # Khởi tạo một tập hợp để lưu trữ các bảng đã xuất hiện
 seen_tables = set()
@@ -13,7 +16,10 @@ create_output_table_df = pd.DataFrame(columns=['File Name', 'Table'])
 library = ("IDALPUB1", "ETLPUB01", "CFCPUB01", "CFCPUB", "CFCSTUDY")
 
 # Đường dẫn đến thư mục chứa các tệp .epg
-folder_path = 'C:/DANH BUI/DATAMART/15. CR_CUSTOMER'
+folder_path = 'C:/epg_files/'
+
+# Khởi tạo một DataFrame để lưu trữ kết quả cho tất cả các tệp .epg
+all_tables_df = pd.DataFrame(columns=['File Name', 'Table', 'Type'])
 
 # Mở từng tệp .epg trong thư mục và tìm các bảng
 for file_name in os.listdir(folder_path):
@@ -53,40 +59,25 @@ for file_name in os.listdir(folder_path):
                         create_output_table_list.extend(tables.split())
 
                     # Lọc các bảng theo thư viện được chỉ định từ đầu
-                    create_output_table_list = [table.upper().strip('[]') for table in create_output_table_list if table.split('.')[0].upper() in library]
-                    create_output_table_list = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in create_output_table_list]
+                    create_output_tables_filtered = [table for table in create_output_table_list if any(lib in table for lib in library)]
 
-                    # Thêm các bảng tạo mới hoặc xuất ra vào danh sách đã xuất hiện
-                    for table in create_output_table_list:
-                        if table not in seen_tables:
-                        create_output_table_df = create_output_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
-                        seen_tables.add(table)
-
-                    # Tìm các bảng từ lệnh FROM hoặc JOIN
-                    from_tables = re.findall(r'(?i)\b(?:from|join)\b\s+(\S+)', program_content)
-
-                    # Lọc các bảng theo thư viện được chỉ định từ đầu
-                    from_tables = [table.upper().strip('[]') for table in from_tables]
-                    from_tables = [re.sub(r'[\'\"\(\)|*\/to;:]', '', table) for table in from_tables]
-                    from_tables = [table for table in from_tables if table.split('.')[0].upper() in library]
-                    from_tables = list(set(from_tables))
-
-                    # Thêm các bảng từ lệnh FROM hoặc JOIN vào danh sách từ bảng đã xuất hiện và loại bỏ các bảng trong danh sách tạo mới hoặc xuất ra
+                    # Lưu các bảng từ FROM hoặc JOIN vào from_table_df
                     for table in from_tables:
-                        if table not in seen_tables:
-                            if table not in create_output_table_list:
-                                from_table_df = from_table_df.append({'Table': table, 'File Name': egp_file_name}, ignore_index=True)
-                                seen_tables.add(table)
+                        if any(lib in table for lib in library):
+                            from_table_df = from_table_df.append({'File Name': egp_file_name, 'Table': table, 'Type': 'FROM/JOIN'}, ignore_index=True)
 
-        # Xóa các bảng trùng lặp trong DataFrame create_output_table_df
-        create_output_table_df.drop_duplicates(inplace=True)
+                    # Lưu các bảng được tạo mới hoặc xuất ra vàocreate_output_table_df
+                    for table in create_output_tables_filtered:
+                        if any(lib in table for lib in library):
+                            create_output_table_df = create_output_table_df.append({'File Name': egp_file_name, 'Table': table}, ignore_index=True)
 
-        # Xuất kết quả vào file Excel
-        with pd.ExcelWriter('Table_List.xlsx', mode='a') as writer:
-            create_output_table_df.to_excel(writer, sheet_name='Created/Output Tables', index=False)
-            from_table_df.to_excel(writer, sheet_name='From/Join Tables', index=False)
+        # Lưu tất cả các bảng được tìm thấy trong tệp .epg vào all_tables_df
+        all_tables = list(set(from_tables + create_output_tables_filtered))
+        for table in all_tables:
+            if any(lib in table for lib in library):
+                all_tables_df = all_tables_df.append({'File Name': egp_file_name, 'Table': table, 'Type': 'FROM/JOIN' if table in from_tables else 'CREATE/OUTPUT'}, ignore_index=True)
 
-        # Reset các DataFrame và tập hợp để sử dụng cho tệp .epg tiếp theo
-        seen_tables = set()
-        from_table_df = pd.DataFrame(columns=['File Name', 'Table'])
-        create_output_table_df = pd.DataFrame(columns=['File Name', 'Table'])
+# Ghi all_tables_df ra file Excel với 2 sheet riêng biệt
+with pd.ExcelWriter('all_tables.xlsx') as writer:
+    all_tables_df[all_tables_df['Type'] == 'FROM/JOIN'].to_excel(writer, sheet_name='FROM/JOIN')
+    all_tables_df[all_tables_df['Type'] == 'CREATE/OUTPUT'].to_excel(writer, sheet_name='CREATE/OUTPUT')
