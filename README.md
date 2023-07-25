@@ -1,40 +1,19 @@
-import openpyxl
-import os
+/* Gộp tên các cột lại thành một mảng và sắp xếp mảng đó */
+PROC SQL;
+  SELECT name
+  INTO :col_array separated by ' '
+  FROM dictionary.columns
+  WHERE libname = 'yourlib' AND memname = 'yourtable'
+  ORDER BY name;
+QUIT;
 
-# Lấy danh sách tất cả các tệp .xlsm trong thư mục
-file_list = os.listdir(".")
+/* Tạo bảng mới theo mảng đã sắp xếp */
+PROC SORT DATA=yourtable OUT=newtable;
+  BY &col_array; /* Sắp xếp bảng dữ liệu theo mảng đã sắp xếp */
+RUN;
 
-# Lặp qua tất cả các tệp .xlsm
-for file in file_list:
-
-    # Nếu tệp là một tệp .xlsm, hãy mở nó
-    if file.endswith(".xlsm"):
-
-        # Mở sổ làm việc
-        wb = openpyxl.load_workbook(file)
-
-        # Lấy bảng SAS_Add_in
-        table = wb.get_named_range("SAS_Add_in")
-
-        # Xuất bảng ra tệp văn bản
-        with open(file + "_SAS_Add_in.txt", "w") as f:
-            f.write(table.value)
-
-        # Lấy tất cả các trang tính
-        sheets = wb.get_sheet_names()
-
-        # Lặp qua tất cả các trang tính
-        for sheet in sheets:
-
-            # Lấy tất cả các mã VBA trên trang tính
-            vba_code = wb[sheet].vba_code
-
-            # Tìm tất cả các đường dẫn trong mã VBA
-            paths = re.findall(r"(?<=path\(").+?(?=\))", vba_code)
-
-            # In tất cả các đường dẫn
-            for path in paths:
-                print(path)
-
-# Đóng tất cả các sổ làm việc
-openpyxl.Workbook.close_all()
+PROC SQL;
+  CREATE TABLE newtable AS
+  SELECT &col_array /* Chọn toàn bộ các cột trong mảng */
+  FROM newtable;
+QUIT;
