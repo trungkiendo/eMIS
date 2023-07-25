@@ -1,19 +1,21 @@
-/* Gộp tên các cột lại thành một mảng và sắp xếp mảng đó */
-PROC SQL;
-  SELECT name
-  INTO :col_array separated by ' '
-  FROM dictionary.columns
-  WHERE libname = 'yourlib' AND memname = 'yourtable'
-  ORDER BY name;
-QUIT;
+proc sort data = loan;
+by loan_amt;
+run;
 
-/* Tạo bảng mới theo mảng đã sắp xếp */
-PROC SORT DATA=yourtable OUT=newtable;
-  BY &col_array; /* Sắp xếp bảng dữ liệu theo mảng đã sắp xếp */
-RUN;
+data set1;
+set loan;
+where mod(_n_, 5000) = 1;
+run;
 
-PROC SQL;
-  CREATE TABLE newtable AS
-  SELECT &col_array /* Chọn toàn bộ các cột trong mảng */
-  FROM newtable;
-QUIT;
+data set2;
+set loan;
+where mod(_n_, 5000) = 0;
+run;
+
+proc print data = set1;
+var loan_amt;
+run;
+
+proc print data = set2;
+var loan_amt;
+run;
