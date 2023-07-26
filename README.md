@@ -4,11 +4,6 @@ proc import datafile='/path/to/loan_data.csv'
             dbms=csv replace;
 run;
 
-/* Sắp xếp bảng dữ liệu theo giá trị của loan_amt */
-proc sort data=loa_tb;
-   by loan_amt;
-run;
-
 /* Tính tổng giá trị loan_amt của bảng dữ liệu */
 proc sql;
    select sum(loan_amt) into :total_loan_amt from loa_tb;
@@ -19,19 +14,64 @@ proc sql;
    select count(*) into :num_cases from loa_tb;
 quit;
 
-/* Tạo ra 2 tập dữ liệu con sử dụng kỹ thuật sampling */
-data loa_tb_1 loa_tb_2;
-   /* Chọn ngẫu nhiên một số case cho tập 1 */
-   call streaminit(1234); /* Khởi tạo seed cho random number generator */
-   do i = 1 to ceil(&num_cases / 2);
-      set loa_tb nobs=num_cases;
-      if rand("UNIFORM") < 0.5 then output loa_tb_1;
-   end;
-
-   /* Chọn các case còn lại cho tập 2 */
+/* Tạo ra một biến mới cho bảng dữ liệu, biểu thị nhóm mà mỗi case thuộc về */
+data loa_tb;
    set loa_tb;
-   if _n_ <= &num_cases / 2 then delete;
-   output loa_tb_2;
+   group = ifn(_n_ <= ceil(&num_cases / 2), 1, 2);
+run;
+
+/* Định nghĩa hàm tính tổng sai số của phân chia */
+%macro sum_squared_error(data);
+   proc means data=&data noprint;
+      var loan_amt;
+      output out=_tmp sum=total_loan_amt n=n_cases;
+   run;
+
+   proc sql noprint;
+      select sum((loan_amt - &total_loan_amt / &n_cases) ** 2)
+      into :sum_squared_error
+      from _tmp;
+   quit;
+
+   %put Sum of squared error: &sum_squared_error;
+
+   %let sum_squared_error = &sum_squared_error;
+%mend;
+
+/* Định nghĩa hàm tính tổng sai số của phân chia cho một giá trị ngưỡng */
+%macro split_data(data, threshold);
+   data _tmp;
+      set &data;
+      group = ifn(loan_amt <= &threshold, 1, 2);
+   run;
+
+   %sum_squared_error(_tmp)
+%mend;
+
+/* Tìm giá trị ngưỡng tối ưu bằng thuật toán tối ưu hóa */
+%let min_threshold = %sysevalf(%sysfunc(min(loa_tb.loan_amt)));
+%let max_threshold = %sysevalf(%sysfunc(max(loa_tb.loan_amt)));
+%let step = %sysevalf((&max_threshold - &min_threshold) / 100);
+%let best_threshold = &min_threshold;
+%let best_error = %split_data(loa_tb, &best_threshold);
+
+%do i = %sysevalf(&min_threshold + &step) %to %sysevalf(&max_threshold) %by %sysevalf(&step);
+   %let error = %split_data(loa_tb, &i);
+
+   %if &error < &best_error %then %do;
+      %let best_error = &error;
+      %let best_threshold = &i;
+   %end;
+%end;
+
+%put Best threshold: &best_threshold;
+%put Best sum of squared error: &best_error;
+
+/* Phân chia bảng dữ liệu thành hai tập dữ liệu sử dụng giá trị ngưỡng tối ưu */
+data loa_tb_1 loa_tb_2;
+   set loa_tb;
+   if loan_amt <= &best_threshold then output loa_tb_1;
+   else output loa_tb_2;
 run;
 
 /* Tính tổng giá trị loan_amt và số lượng case của 2 tập dữ liệu */
@@ -43,8 +83,10 @@ proc sql;
 quit;
 
 /* In kết quả */
-%put Tổng giá trị loan_amt của toàn bộ bảng dữ liệu: &total_loan_amt;
-%put Tổng giá trị loan_amt của tập 1: &loan_amt_1;
-%put Tổng giá trị loan_amt của tập 2: &loan_amt_2;
-%put Số lượng case của tập 1: &num_cases_1;
-%put Số lượng case của tập 2: &num_cases_2;
+%put Tổng giá trị loan_amt của toàn bộ bảng dữ liệu: &total_loan_amt. 
+%put Số lượng case của toàn bộ bảng dữ liệu: &num_cases;
+%put Giá trị ngưỡng tối ưu: &best_threshold;
+%put Số lượng case của tập dữ liệu con thứ nhất: &num_cases_1;
+%put Tổng giá trị loan_amt của tập dữ liệu con thứ nhất: &loan_amt_1;
+%put Số lượng case của tập dữ liệu con thứ hai: &num_cases_2;
+%put Tổng giá trị loan_amt của tập dữ liệu con thứ hai: &loan_amt_2;
