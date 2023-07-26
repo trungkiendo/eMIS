@@ -1,19 +1,19 @@
-/* Tính số case và tổng giá trị loan_amt của bảng dữ liệu */
-proc sql;
-   select count(*) into :num_cases from loa_tb;
-   select sum(loan_amt) into :total_loan_amt from loa_tb;
-quit;
+/* Tạo cột số ngẫu nhiên và tính tổng giá trị loan_amt trong bảng dữ liệu */
+data loa_tb;
+   set loa_tb;
+   rand = ranuni(0);
+   sum_loan_amt + loan_amt;
+run;
 
-/* Tính phân vị thứ nhất và thứ hai của giá trị loan_amt */
-proc univariate data=loa_tb noprint;
-   var loan_amt;
-   output out=loan_amt_pctl pctlpre=loan_amt_ pctlpts=25 50 75;
+/* Sắp xếp bảng dữ liệu theo giá trị của cột số ngẫu nhiên */
+proc sort data=loa_tb;
+   by rand;
 run;
 
 /* Chọn ngưỡng phân chia các case giữa hai tập dữ liệu */
 data _null_;
-   set loan_amt_pctl;
-   if loan_amt_50 then do;
+   set loa_tb;
+   if _n_ eq ceil(&num_cases/2) then do;
       call symputx('threshold', loan_amt);
       stop;
    end;
