@@ -1,34 +1,31 @@
-[proc sort data = loan;
-by loan_amt;
+/* Tính tổng số loan_amt trong bảng dữ liệu */
+proc sql;
+   select sum(loan_amt) into :total_loan_amt from loa_tb;
+quit;
+
+/* Tính phân phối phần trăm của loan_amt trong bảng dữ liệu */
+proc sql;
+   create table loa_tb_percent as
+   select loan_id, loan_amt, loan_amt/&total_loan_amt as loan_amt_pct
+   from loa_tb;
+quit;
+
+/* Sắp xếp bảng dữ liệu theo phân phối phần trăm của loan_amt */
+proc sort data=loa_tb_percent;
+   by loan_amt_pct;
 run;
 
-data set1;
-set loan;
-where mod(_n_, 5000) = 1;
+/* Chia bảng dữ liệu thành 2 tập tương đương về phân phối phần trăm của loan_amt */
+data loa_tb_set1 loa_tb_set2;
+   set loa_tb_percent;
+
+   /* Chia tập dựa trên giá trị của phân phối phần trăm */
+   if _n_ le nobs/2 then output loa_tb_set1;
+   else output loa_tb_set2;
 run;
 
-data set2;
-set loan;
-where mod(_n_, 5000) = 0;
-run;
-
-proc print data = set1;
-var loan_amt;
-run;
-
-proc print data = set2;
-var loan_amt;
-run;
-](https://performancemanager10.successfactors.com/sf/pmreview?fid=20925&company=svfc&username=ECF001791&reqOrig=todoList&&_s.crb=usAWIqedAOQDxxOnoPfjQNC9HE8eAIBg8z4gHETLK2I%253d
-
-
-ECF001791
-
-
-Dtk@200289)https://performancemanager10.successfactors.com/sf/pmreview?fid=20925&company=svfc&username=ECF001791&reqOrig=todoList&&_s.crb=usAWIqedAOQDxxOnoPfjQNC9HE8eAIBg8z4gHETLK2I%253d
-
-
-ECF001791
-
-
-Dtk@200289
+/* Tính tổng số case và tổng số loan_amt trong 2 tập */
+proc sql;
+   select count(*) as num_cases_1, sum(loan_amt) as sum_loan_amt_1 from loa_tb_set1;
+   select count(*) as num_cases_2, sum(loan_amt) as sum_loan_amt_2 from loa_tb_set2;
+quit;
