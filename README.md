@@ -1,13 +1,21 @@
 data loan1;
 set loan;
 keep loan_id loan_amt;
-rank loan_amt;
-where rank <= 0.7 * _N_;
+by loan_amt;
+do i=1 to 70;
+    if i <= _N_;
+        output loan1;
+    endif;
+end;
 run;
 
 data loan2;
 set loan;
 keep loan_id loan_amt;
-rank loan_amt;
-where rank > 0.7 * _N_;
+by loan_amt;
+do i=71 to _N_;
+    if i <= _N_;
+        output loan2;
+    endif;
+end;
 run;
