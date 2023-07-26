@@ -3,21 +3,25 @@ proc sql;
    select sum(loan_amt) into :total_loan_amt from loa_tb;
 quit;
 
-/* Sắp xếp bảng dữ liệu theo giá trị của loan_amt */
-proc sort data=loa_tb;
-   by loan_amt;
+/* Tính số case của bảng dữ liệu */
+proc sql;
+   select count(*) into :num_cases from loa_tb;
+quit;
+
+/* Tính số case và tổng giá trị loan_amt của mỗi tập */
+%let num_sets = 2;
+%let num_cases_per_set = %sysevalf(&num_cases/&num_sets);
+%let total_loan_amt_per_set = %sysevalf(&total_loan_amt/&num_sets);
+
+/* Lựa chọn ngẫu nhiên các case cho tập dữ liệu thứ nhất */
+proc surveyselect data=loa_tb out=loa_tb_set1
+   method=srs n=&num_cases_per_set total=&total_loan_amt_per_set;
 run;
 
-/* Chia bảng dữ liệu thành 2 tập tương đương về giá trị của loan_amt */
-data loa_tb_set1 loa_tb_set2;
+/* Tạo tập dữ liệu thứ hai từ các case không được chọn cho tập dữ liệu thứ nhất */
+data loa_tb_set2;
    set loa_tb;
-
-   /* Lấy các case từ trên xuống cho tới khi tổng giá trị loan_amt vượt quá nửa tổng giá trị */
-   if sum_loan_amt le &total_loan_amt/2 then do;
-      output loa_tb_set1;
-      sum_loan_amt + loan_amt;
-   end;
-   else output loa_tb_set2;
+   if _n_ notin loa_tb_set1;
 run;
 
 /* Tính tổng số case và tổng số loan_amt trong 2 tập */
