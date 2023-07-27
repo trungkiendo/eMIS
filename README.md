@@ -1,14 +1,10 @@
-import win32com.client
-
-# Mở Excel
-xl = win32com.client.Dispatch("Excel.Application")
-xl.Visible = False
+import xlwings as xw
 
 # Mở workbook chứa add-in
-wb = xl.Workbooks.Open(r"C:\path\to\your\file.xlsm", ReadOnly=True)
+wb = xw.Book(r"C:\path\to\your\file.xlsm")
 
 # Lấy danh sách các add-in
-add_ins = wb.AddIns2
+add_ins = wb.api.AddIns2
 
 # Lặp qua các add-in để tìm add-in của table SAS
 for add_in in add_ins:
@@ -26,10 +22,8 @@ for add_in in add_ins:
 
         # Xuất dữ liệu
         print("Column headers: ", headers)
-        print("Data: ", data)
+        for row in data:
+            print(row)
 
 # Đóng workbook
-wb.Close(False)
-
-# Đóng Excel
-xl.Quit()
+wb.close()
