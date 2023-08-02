@@ -1,29 +1,35 @@
-import xlwings as xw
+import win32com.client
+from openpyxl import load_workbook
 
-# Mở workbook chứa add-in
-wb = xw.Book(r"C:\path\to\your\file.xlsm")
+# Khởi tạo ứng dụng SAS và kết nối
+sas = win32com.client.Dispatch('SAS.Application')
+sas.Visible = False
 
-# Lấy danh sách các add-in
-add_ins = wb.api.AddIns2
+# Thực hiện mã SAS để refresh các bảng
+sas_code = """
+libname mylib 'path/to/my/lib';
+proc sql;
+    create table mytable as
+    select * from mylib.mydata;
+quit;
+"""
 
-# Lặp qua các add-in để tìm add-in của table SAS
-for add_in in add_ins:
-    if add_in.Name == "SAS":
-        # Lấy bảng chứa dữ liệu
-        table = add_in.InstalledRunTime.Table
+sas.Submit(sas_code)
 
-        # Lấy tên các cột
-        headers = [col.Name for col in table.Columns]
+# Lấy danh sách tên các bảng được refresh
+table_names = sas.Workspace('results').ListTables()
 
-        # Lấy dữ liệu từ các hàng
-        data = []
-        for row in table.Rows:
-            data.append([row.Columns(i).Value for i in range(1, len(headers) + 1)])
+# Mở tập tin Excel và ghi tên các bảng vào sheet
+workbook = load_workbook('ten_file_excel.xlsm')
+worksheet = workbook['Sheet1']
 
-        # Xuất dữ liệu
-        print("Column headers: ", headers)
-        for row in data:
-            print(row)
+row = 1
+for table_name in table_names:
+    worksheet.cell(row=row, column=1, value=table_name)
+    row += 1
 
-# Đóng workbook
-wb.close()
+# Lưu tập tin Excel
+workbook.save('ten_file_excel.xlsm')
+
+# Đóng kết nối SAS và tập tin Excel
+sas.Quit()
