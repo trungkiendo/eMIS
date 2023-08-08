@@ -1,35 +1,71 @@
-import win32com.client
-from openpyxl import load_workbook
+/* Định nghĩa mốc thời gian start_time và end_time */
+%let start_time = '08:30:00'dt;
+%let end_time = '2023-08-08 16:45:00'dt;
 
-# Khởi tạo ứng dụng SAS và kết nối
-sas = win32com.client.Dispatch('SAS.Application')
-sas.Visible = False
+/* Định nghĩa danh sách các ngày nghỉ lễ */
+%let holiday_list = ('2023-01-01'dt, '2023-04-10'dt, '2023-09-04'dt);
 
-# Thực hiện mã SAS để refresh các bảng
-sas_code = """
-libname mylib 'path/to/my/lib';
-proc sql;
-    create table mytable as
-    select * from mylib.mydata;
-quit;
-"""
+/* Tính số phút giữa hai mốc thời gian */
+%let minutes = intck('MINUTE', &start_time, &end_time);
 
-sas.Submit(sas_code)
+/* Kiểm tra nếu có ngày cuối tuần */
+%let start_weekday = weekday(&start_time);
+%let end_weekday = weekday(&end_time);
 
-# Lấy danh sách tên các bảng được refresh
-table_names = sas.Workspace('results').ListTables()
+%if &start_weekday in (1, 7) or &end_weekday in (1, 7) %then %do;
+    /* Trừ đi số phút từ start_time đến cuối ngày */
+    %let start_time = intnx('DAY', &start_time, 1, 'END');
+    %let weekend_minutes = intck('MINUTE', &start_time, &end_time) + 1;
 
-# Mở tập tin Excel và ghi tên các bảng vào sheet
-workbook = load_workbook('ten_file_excel.xlsm')
-worksheet = workbook['Sheet1']
+    /* Trừ đi số phút từ đầu ngày đến end_time */
+    %let end_time = intnx('DAY', &end_time, -1, 'BEGIN');
+    %let weekend_minutes = &weekend_minutes + intck('MINUTE', &start_time, &end_time) + 1;
 
-row = 1
-for table_name in table_names:
-    worksheet.cell(row=row, column=1, value=table_name)
-    row += 1
+    %let minutes = &minutes - &weekend_minutes;
+%end;
 
-# Lưu tập tin Excel
-workbook.save('ten_file_excel.xlsm')
+/* Kiểm tra nếu start_time hoặc end_time nằm ngoài khoảng thời gian từ 8:00 đến 17:00 */
+%let start_hour = hour(&start_time);
+%let end_hour = hour(&end_time);
 
-# Đóng kết nối SAS và tập tin Excel
-sas.Quit()
+%if &start_hour < 8 %then %do;
+    /* Đặt start_time là 8:00 */
+    %let start_time = dhms(datepart(&start_time), 8, 0, 0);
+%end;
+
+%if &end_hour > 17 %then %do;
+    /* Đặt end_time là 17:00 */
+    %let end_time = dhms(datepart(&end_time), 17, 0, 0);
+%end;
+
+%if &start_time < &end_time %then %do;
+    /* Trừ đi số phút từ 8:00 đến start_time */
+    %let start_minutes = intck('MINUTE', dhms(datepart(&start_time), 8, 0, 0), &start_time);
+
+    /* Trừ đi số phút từ end_time đến 17:00 */
+    %let end_minutes = intck('MINUTE', &end_time, dhms(datepart(&end_time), 17, 0, 0));
+
+    %let minutes = &minutes - &start_minutes - &end_minutes;
+%end;
+
+/* Kiểm tra và trừ đi số phút của các ngày nghỉ lễ */
+%let holiday_minutes = 0;
+%let i = 1;
+
+%do %while (%scan(&holiday_list, &i, ',' ne ));
+
+    %let holiday_date = %scan(&holiday_list, &i, ',');
+
+    %if &start_time <= &holiday_date <= &end_time %then %do;
+        /* Trừ đi số phút của ngày nghỉ lễ */
+        %let holiday_minutes = %eval(&holiday_minutes + 1440);
+    %end;
+
+    %let i = %eval(&i + 1);
+%end;
+
+/* Trừ đi số phút của các ngày nghỉ lễ */
+%let minutes = %eval(&minutes - &holiday_minutes);
+
+/* In kết quả */
+%put Số phút giữa start_time và end_time (loại bỏ ngày nghỉ lễ) là &minutes;
